@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reject Request | PTC Inventory</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      background: #0f172a;
+    }
+    .card {
+      width: 100%;
+      max-width: 430px;
+      padding: 30px;
+      border: 1px solid #ffffff25;
+      border-radius: 22px;
+      background: #ffffff10;
+      text-align: center;
+      box-shadow: 0 15px 40px #0005;
+    }
+    .icon { font-size: 48px; }
+    h1 { font-size: 25px; }
+    p { color: #cbd5e1; line-height: 1.6; overflow-wrap: anywhere; }
+    button, a {
+      display: inline-block;
+      margin: 8px 4px 0;
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 10px;
+      font-weight: bold;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    button { color: white; background: #dc2626; }
+    button:disabled { opacity: .6; cursor: wait; }
+    a { color: white; background: #334155; }
+    #message { margin-top: 18px; }
+    .error { color: #fca5a5; }
+    .success { color: #86efac; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="icon">🚫</div>
+    <h1>Reject Borrow Request</h1>
+    <p id="details">Checking your account and request…</p>
+
+    <button id="rejectButton" disabled>Reject Request</button>
+    <a href="request_logs.html">Back to Request Logs</a>
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <script type="module">
+    import { auth, db } from "./firebase.js";
+    import {
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+    import {
+      doc,
+      getDoc,
+      updateDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    const details = document.getElementById("details");
+    const message = document.getElementById("message");
+    const button = document.getElementById("rejectButton");
+
+    const params = new URLSearchParams(window.location.search);
+    const requestId = params.get("id");
+
+    let currentUser = null;
+    let allowed = false;
+    let processing = false;
+
+    function showMessage(text, type = "") {
+      message.textContent = text;
+      message.className = type;
+    }
+
+    onAuthStateChanged(auth, async user => {
+      currentUser = user;
+      allowed = false;
+      button.disabled = true;
+
+      if (!user) {
+        window.location.replace("../login.html");
+        return;
+      }
+
+      if (!requestId || requestId.includes("/")) {
+        details.textContent = "Invalid or missing request ID.";
+        showMessage("Please open this page using a valid request link.", "error");
+        return;
+      }
+
+      try {
+        const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+        if (!profileSnap.exists()) {
+          details.textContent = "User profile not found.";
+          showMessage("Contact your system administrator.", "error");
+          return;
+        }
+
+        const role = String(profileSnap.data().role || "").toLowerCase();
+
+        if (!["admin", "faculty"].includes(role)) {
+          details.textContent = "You are not authorized to reject requests.";
+          showMessage("Only admin or faculty accounts can access this action.", "error");
+          window.setTimeout(() => {
+            window.location.replace("../login.html");
+          }, 1800);
+          return;
+        }
+
+        const requestSnap = await getDoc(doc(db, "requests", requestId));
+
+        if (!requestSnap.exists()) {
+          details.textContent = "Request not found.";
+          showMessage("The request may have been deleted.", "error");
+          return;
+        }
+
+        const request = requestSnap.data();
+
+        if (String(request.status || "").toLowerCase() !== "pending") {
+          details.textContent = "This request has already been processed.";
+          showMessage("Current status: " + (request.status || "unknown"), "error");
+          return;
+        }
+
+        allowed = true;
+        details.textContent =
+          "Reject the request for " +
+          (request.item_name || request.itemName || "this item") +
+          "? This action cannot be undone here.";
+        button.disabled = false;
+
+      } catch (error) {
+        console.error("Request validation failed:", error);
+        details.textContent = "Could not verify the request.";
+        showMessage(
+          (error.code || "error") + ": " + (error.message || "Access denied."),
+          "error"
+        );
+      }
+    });
+
+    button.addEventListener("click", async () => {
+      if (!currentUser || !allowed || processing) return;
+
+      if (!confirm("Are you sure you want to reject this request?")) return;
+
+      processing = true;
+      button.disabled = true;
+      button.textContent = "Rejecting…";
+      showMessage("");
+
+      try {
+        // Recheck status before updating to reduce accidental duplicate actions.
+        const requestRef = doc(db, "requests", requestId);
+        const latestSnap = await getDoc(requestRef);
+
+        if (!latestSnap.exists()) {
+          throw new Error("Request no longer exists.");
+        }
+
+        if (String(latestSnap.data().status || "").toLowerCase() !== "pending") {
+          throw new Error("This request has already been processed.");
+        }
+
+        await updateDoc(requestRef, {
+          status: "rejected",
+          rejected_by: currentUser.uid,
+          rejected_at: serverTimestamp()
+        });
+
+        details.textContent = "Request rejected successfully.";
+        showMessage("Request Rejected!", "success");
+
+        window.setTimeout(() => {
+          window.location.replace("request_logs.html");
+        }, 900);
+
+      } catch (error) {
+        console.error("Reject request failed:", error);
+        showMessage(
+          "Failed to reject request: " +
+          (error.code || "") + " " +
+          (error.message || "Unknown error."),
+          "error"
+        );
+
+        button.textContent = "Try Again";
+        button.disabled = false;
+        processing = false;
+      }
+    });
+  </script>
+</body>
+</html>

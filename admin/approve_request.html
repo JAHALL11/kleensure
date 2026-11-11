@@ -1,0 +1,342 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approve Borrow Request</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{margin:0;min-height:100vh;padding:24px;background:linear-gradient(135deg,#07111f,#0f172a,#00313b);color:white}
+main{max-width:650px;margin:35px auto;padding:28px;background:#ffffff12;border:1px solid #ffffff20;border-radius:24px;box-shadow:0 12px 35px #0005}
+h1{font-size:clamp(25px,5vw,35px);margin-top:0}
+.info{padding:18px;background:#ffffff0c;border-radius:15px;line-height:2;overflow-wrap:anywhere}
+.info b{color:#81ecec}
+button,.back{display:block;width:100%;padding:15px;margin-top:18px;border:0;border-radius:12px;font-size:16px;font-weight:bold;text-align:center;text-decoration:none;cursor:pointer}
+button{background:linear-gradient(135deg,#00b894,#55efc4);color:#07111f}
+button:disabled{opacity:.55;cursor:wait}
+.back{background:#ffffff15;color:white}
+#message{display:none;padding:13px;margin:16px 0;border-radius:10px;overflow-wrap:anywhere}
+#message.show{display:block}
+.error{background:#ff475733}
+.success{background:#00b89430}
+img{max-width:100%;max-height:300px;object-fit:contain;border-radius:12px;margin-top:12px}
+small{color:#cbd5e1}
+</style>
+</head>
+<body>
+<main>
+  <h1>📋 Approve Borrow Request</h1>
+  <p><small>PTC Institutional Inventory System</small></p>
+  <div id="message" role="status"></div>
+  <div id="details">Checking authorization and loading request...</div>
+  <button id="approveBtn" disabled>✓ Approve Request</button>
+  <a class="back" href="request_logs.html">← Back to Request Logs</a>
+</main>
+
+<script type="module">
+import { initializeApp } from
+  "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, runTransaction,
+  collection, serverTimestamp, Timestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCik-MVlxK6cshGy87dXOi10a0_c52cO1w",
+  authDomain: "inventory-4f2b5.firebaseapp.com",
+  projectId: "inventory-4f2b5",
+  storageBucket: "inventory-4f2b5.firebasestorage.app",
+  messagingSenderId: "185805306294",
+  appId: "1:185805306294:web:d674bd3c32b9994fa46917",
+  measurementId: "G-5KCN8KL8ET"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const details = document.getElementById("details");
+const message = document.getElementById("message");
+const approveBtn = document.getElementById("approveBtn");
+
+const requestId = new URLSearchParams(location.search).get("id");
+
+let currentUser = null;
+let requestData = null;
+let itemData = null;
+let authorized = false;
+let busy = false;
+
+function showMessage(text, type = "error") {
+  message.textContent = text;
+  message.className = "show " + type;
+}
+
+function esc(value = "") {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  })[c]);
+}
+
+function fail(text) {
+  details.textContent = text;
+  approveBtn.disabled = true;
+}
+
+function makeBorrowCode() {
+  const date = new Date();
+  const ymd = date.getFullYear() +
+    String(date.getMonth() + 1).padStart(2, "0") +
+    String(date.getDate()).padStart(2, "0");
+
+  const suffix = crypto.randomUUID().replace(/-/g, "")
+    .slice(0, 8).toUpperCase();
+
+  return `PTC-${ymd}-${suffix}`;
+}
+
+function displayRequest(request, user, item) {
+  const proof = request.proof_borrow
+    ? `<p><b>Borrowing Proof:</b><br>
+       <a href="${esc(request.proof_borrow)}" target="_blank"
+          rel="noopener noreferrer">View proof</a></p>`
+    : "";
+
+  details.innerHTML = `
+    <div class="info">
+      <b>Request ID:</b> ${esc(requestId)}<br>
+      <b>Requester:</b> ${esc(user.username || "Unknown")}<br>
+      <b>Email:</b> ${esc(user.institutional_email || "")}<br>
+      <b>Role:</b> ${esc(user.role || "")}<br>
+      <b>Item:</b> ${esc(item.item_name || "Unknown item")}<br>
+      <b>Available stock:</b> ${Number(item.quantity)}<br>
+      <b>Requested quantity:</b> ${Number(request.quantity)}<br>
+      <b>Request status:</b> ${esc(request.status || "pending")}<br>
+      ${proof}
+    </div>`;
+}
+
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+
+  if (!user) {
+    location.replace("../login.html");
+    return;
+  }
+
+  if (!requestId) {
+    fail("Invalid request: missing request ID.");
+    return;
+  }
+
+  try {
+    // Assumes users/{uid} is the signed-in user's profile document.
+    const adminSnap = await getDoc(doc(db, "users", user.uid));
+
+    if (!adminSnap.exists()) {
+      fail("User profile not found.");
+      return;
+    }
+
+    const admin = adminSnap.data();
+    const role = String(admin.role || "").toLowerCase();
+
+    if (!["admin", "faculty"].includes(role) ||
+        admin.account_status === "blocked") {
+      fail("Only authorized admin or faculty accounts may approve requests.");
+      setTimeout(() => location.replace("../login.html"), 1500);
+      return;
+    }
+
+    const requestSnap = await getDoc(doc(db, "requests", requestId));
+
+    if (!requestSnap.exists()) {
+      fail("Request not found.");
+      return;
+    }
+
+    requestData = requestSnap.data();
+
+    // These fields must contain Firestore document IDs.
+    if (!requestData.user_id || !requestData.item_id) {
+      fail("The request is missing user_id or item_id.");
+      return;
+    }
+
+    const [userSnap, itemSnap] = await Promise.all([
+      getDoc(doc(db, "users", String(requestData.user_id))),
+      getDoc(doc(db, "items", String(requestData.item_id)))
+    ]);
+
+    if (!userSnap.exists() || !itemSnap.exists()) {
+      fail("The requester or inventory item could not be found.");
+      return;
+    }
+
+    const requester = userSnap.data();
+    itemData = itemSnap.data();
+
+    displayRequest(requestData, requester, itemData);
+
+    if (String(requestData.status || "pending").toLowerCase() !== "pending") {
+      showMessage("This request is not pending and cannot be approved.", "error");
+      return;
+    }
+
+    const quantity = Number(requestData.quantity);
+    const stock = Number(itemData.quantity);
+
+    if (!Number.isSafeInteger(quantity) || quantity < 1 ||
+        !Number.isSafeInteger(stock) || stock < 0) {
+      showMessage("Invalid quantity or stock data.", "error");
+      return;
+    }
+
+    if (stock < quantity) {
+      showMessage("Insufficient stock! No changes have been made.", "error");
+      return;
+    }
+
+    authorized = true;
+    approveBtn.disabled = false;
+
+  } catch (error) {
+    console.error(error);
+    fail(error.code === "permission-denied"
+      ? "Access denied. Check your Firebase security rules."
+      : "Unable to load request: " + (error.message || "Unknown error"));
+  }
+});
+
+approveBtn.addEventListener("click", async () => {
+  if (!authorized || !currentUser || busy) return;
+
+  if (!confirm("Approve this request and deduct the requested quantity from stock?")) {
+    return;
+  }
+
+  busy = true;
+  approveBtn.disabled = true;
+  approveBtn.textContent = "Processing approval...";
+
+  try {
+    // Recheck role immediately before the transaction.
+    const adminSnap = await getDoc(doc(db, "users", currentUser.uid));
+    if (!adminSnap.exists()) throw new Error("Admin profile not found.");
+
+    const admin = adminSnap.data();
+    const role = String(admin.role || "").toLowerCase();
+
+    if (!["admin", "faculty"].includes(role) ||
+        admin.account_status === "blocked") {
+      throw new Error("You are no longer authorized to approve requests.");
+    }
+
+    const requestRef = doc(db, "requests", requestId);
+    const itemRef = doc(db, "items", String(requestData.item_id));
+    const requesterRef = doc(db, "users", String(requestData.user_id));
+    const logRef = doc(collection(db, "borrow_logs"));
+
+    const now = new Date();
+    const dueDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const borrowCode = makeBorrowCode();
+
+    await runTransaction(db, async transaction => {
+      // All reads must happen before writes.
+      const [reqSnap, itemSnap, requesterSnap] = await Promise.all([
+        transaction.get(requestRef),
+        transaction.get(itemRef),
+        transaction.get(requesterRef)
+      ]);
+
+      if (!reqSnap.exists()) throw new Error("Request no longer exists.");
+      if (!itemSnap.exists()) throw new Error("Inventory item no longer exists.");
+      if (!requesterSnap.exists()) throw new Error("Requester no longer exists.");
+
+      const req = reqSnap.data();
+      const item = itemSnap.data();
+      const requester = requesterSnap.data();
+
+      if (String(req.status || "pending").toLowerCase() !== "pending") {
+        throw new Error("This request has already been processed.");
+      }
+
+      const quantity = Number(req.quantity);
+      const stock = Number(item.quantity);
+      const borrowed = Number(requester.current_borrowed || 0);
+
+      if (!Number.isSafeInteger(quantity) || quantity < 1 ||
+          !Number.isSafeInteger(stock) || stock < quantity) {
+        throw new Error("Insufficient stock or invalid quantity. No changes made.");
+      }
+
+      if (!Number.isSafeInteger(borrowed) || borrowed < 0) {
+        throw new Error("The user's current_borrowed value is invalid.");
+      }
+
+      transaction.update(itemRef, {
+        quantity: stock - quantity
+      });
+
+      transaction.update(requesterRef, {
+        current_borrowed: borrowed + quantity
+      });
+
+      transaction.update(requestRef, {
+        status: "approved",
+        approved_by: currentUser.uid,
+        approved_at: serverTimestamp()
+      });
+
+      transaction.set(logRef, {
+        user_id: req.user_id,
+        item_id: req.item_id,
+        quantity,
+
+        username: requester.username || "",
+        institutional_email: requester.institutional_email || "",
+        role: requester.role || "",
+
+        proof_borrow: req.proof_borrow || "",
+        status: "borrowed",
+        date_borrowed: serverTimestamp(),
+        due_date: Timestamp.fromDate(dueDate),
+        return_condition: "GOOD",
+        borrow_code: borrowCode,
+
+        createdAt: serverTimestamp(),
+        approved_by: currentUser.uid
+      });
+    });
+
+    showMessage(
+      "Request approved successfully! Borrow code: " + borrowCode +
+      ". Redirecting to request logs...",
+      "success"
+    );
+
+    approveBtn.textContent = "✓ Approved";
+
+    setTimeout(() => {
+      location.href = "request_logs.html";
+    }, 1600);
+
+  } catch (error) {
+    console.error(error);
+    showMessage(error.code === "permission-denied"
+      ? "Permission denied. Verify Firestore security rules."
+      : (error.message || "Approval failed. Please try again."));
+    approveBtn.disabled = false;
+    approveBtn.textContent = "✓ Approve Request";
+  } finally {
+    busy = false;
+  }
+});
+</script>
+</body>
+</html>

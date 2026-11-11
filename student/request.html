@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PTC Inventory | Borrow Request</title>
+<link rel="icon" href="data:,">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#07111f,#0f172a,#001f2f);min-height:100vh;padding:30px;color:white}
+.nav-top,.wrapper{max-width:1200px;margin:auto}
+.nav-top{margin-bottom:20px}
+.nav-top a{display:inline-block;padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:#ffffff14;color:white;border:1px solid #ffffff15;transition:.3s}
+.nav-top a:hover{background:#00cec9;color:#0f172a}
+.top{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:20px;margin-bottom:25px}
+.stat,.card{background:#ffffff12;backdrop-filter:blur(15px);border:1px solid #ffffff15;box-shadow:0 10px 30px #0004;min-width:0}
+.stat{padding:25px;border-radius:24px}
+.stat h3{font-size:15px;margin-bottom:10px;color:#81ecec}
+.stat p{font-size:38px;font-weight:bold;overflow-wrap:anywhere}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:25px}
+.card{border-radius:30px;padding:35px}
+.title{font-size:clamp(27px,4vw,40px);font-weight:bold;margin-bottom:25px}
+.info{background:#ffffff0f;padding:20px;border-radius:18px;line-height:2;margin-bottom:25px;overflow-wrap:anywhere}
+.info b{color:#81ecec}
+label{display:block;margin-top:15px;font-weight:bold}
+select,input{width:100%;padding:16px;margin-top:10px;border:none;border-radius:15px;background:#fffffff5;font-size:15px;color:#172033}
+select:focus,input:focus{outline:2px solid #00cec9}
+button{width:100%;padding:18px;border:none;border-radius:18px;margin-top:20px;font-size:17px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,#00b894,#00cec9);color:white;transition:.3s}
+button:hover{transform:translateY(-2px)}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.health{margin-top:25px}
+.bar{width:100%;height:25px;background:#ffffff15;border-radius:30px;overflow:hidden;margin-top:10px}
+.bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#00ff88,#00cec9);transition:width .3s}
+.recent-item{padding:18px;border-radius:18px;background:#ffffff0f;margin-bottom:15px;overflow-wrap:anywhere}
+.recent-item h4{margin-bottom:8px}
+.recent-item p{margin-top:7px;color:#ddd}
+.pending{color:#fdcb6e;font-weight:bold}
+.approved{color:#00ff88;font-weight:bold}
+.rejected{color:#ff7675;font-weight:bold}
+.other-status{color:#81ecec;font-weight:bold}
+.footer{margin-top:30px;text-align:center;color:#aaa;font-size:13px}
+.notice{display:none;padding:14px 16px;border-radius:12px;margin-bottom:18px;line-height:1.6;overflow-wrap:anywhere}
+.notice.show{display:block}
+.notice.success{background:#d9fff2;color:#075d46}
+.notice.error{background:#ffe2e2;color:#8a1e1e}
+.notice.info{background:#e1f0ff;color:#174778}
+.muted{color:#aaa;font-size:13px;line-height:1.6}
+#proofPreview{display:none;margin-top:14px;max-width:180px;max-height:180px;border-radius:14px;object-fit:cover}
+#proofPreview.show{display:block}
+.recent-empty{padding:20px;text-align:center;color:#bbb;line-height:1.6}
+@media(max-width:1000px){.main{grid-template-columns:1fr}}
+@media(max-width:600px){body{padding:15px}.card{padding:22px;border-radius:23px}.stat p{font-size:32px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+</style>
+</head>
+
+<body>
+<div class="nav-top">
+  <a id="dashboardLink" href="student_dashboard.html">← Back to Dashboard</a>
+</div>
+
+<div class="wrapper">
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+  <section class="top">
+    <div class="stat"><h3>📦 Current Borrowed</h3><p id="currentBorrowed">—</p></div>
+    <div class="stat"><h3>📚 Borrow Limit</h3><p id="borrowLimit">100</p></div>
+    <div class="stat"><h3>📨 Total Requests</h3><p id="totalRequests">—</p></div>
+    <div class="stat"><h3>⏳ Pending</h3><p id="pendingRequests">—</p></div>
+  </section>
+
+  <div class="main">
+    <section class="card">
+      <div class="title">📦 Borrow Item</div>
+
+      <div class="info">
+        <b>Name:</b> <span id="profileName">Loading…</span><br>
+        <b>Email:</b> <span id="profileEmail">—</span><br>
+        <b>Role:</b> <span id="profileRole">—</span><br>
+        <b>Remaining Slot:</b> <span id="remainingSlot">—</span>
+      </div>
+
+      <form id="requestForm">
+        <label for="itemSelect">Select item</label>
+        <select id="itemSelect" required disabled>
+          <option value="">Loading available items…</option>
+        </select>
+
+        <label for="quantityInput">Quantity</label>
+        <input type="number" id="quantityInput"
+          placeholder="Select an item first" min="1" step="1"
+          inputmode="numeric" required disabled>
+
+        <label for="proofInput">Borrowing proof image (required)</label>
+        <input type="file" id="proofInput" accept="image/*" required disabled>
+        <p class="muted" style="margin-top:10px">
+          Mag-upload ng malinaw na larawan bilang proof. Image files lang, hanggang 5 MB.
+        </p>
+        <img id="proofPreview" alt="Selected proof preview">
+
+        <button id="submitButton" type="submit" disabled>
+          🚀 Submit Borrow Request
+        </button>
+      </form>
+
+      <div class="health">
+        <h3>💚 Borrow Capacity</h3>
+        <div class="bar"><div class="bar-fill" id="capacityBar"></div></div>
+        <p class="muted" id="capacityText" style="margin-top:10px">Loading capacity…</p>
+      </div>
+    </section>
+
+    <aside class="card">
+      <div class="title">📜 Recent Requests</div>
+      <div id="recentRequests">
+        <p class="recent-empty">Loading recent requests…</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="footer">
+    PTC Institutional Inventory System © <span id="year"></span>
+  </div>
+</div>
+
+<script type="module">
+import { auth, db, storage } from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  collection, doc, getDoc, getDocs, addDoc,
+  query, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+import {
+  ref, uploadBytes, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+
+const $ = id => document.getElementById(id);
+
+const BORROW_LIMIT = 100;
+const MAX_PROOF_SIZE = 5 * 1024 * 1024;
+const ALLOWED_ROLES = ["student", "teacher", "faculty"];
+
+let currentUser = null;
+let profile = null;
+let availableItems = [];
+let borrowedCount = 0;
+let limitCount = BORROW_LIMIT;
+let requestCount = 0;
+let pendingCount = 0;
+let isSubmitting = false;
+let previewUrl = null;
+
+$("year").textContent = new Date().getFullYear();
+
+function showNotice(message, type = "info") {
+  $("notice").textContent = message;
+  $("notice").className = "notice show " + type;
+}
+
+function clearNotice() {
+  $("notice").textContent = "";
+  $("notice").className = "notice";
+}
+
+function num(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeRole(role) {
+  return String(role || "").trim().toLowerCase();
+}
+
+function canBorrow(role) {
+  return ALLOWED_ROLES.includes(normalizeRole(role));
+}
+
+function statusOf(request) {
+  return String(request.status || "pending").toLowerCase();
+}
+
+function itemName(item) {
+  return item.item_name || item.itemName || item.name || "Unnamed item";
+}
+
+function itemStock(item) {
+  return Math.max(0, Math.floor(num(item.quantity ?? item.stock)));
+}
+
+function requestItemId(request) {
+  return String(request.item_id ?? request.itemId ?? "");
+}
+
+function requestQuantity(request) {
+  return Math.max(0, num(request.quantity ?? request.qty));
+}
+
+function requestDate(request) {
+  const value =
+    request.request_date ?? request.requestDate ?? request.created_at;
+
+  if (value?.toDate) return value.toDate();
+  if (value instanceof Date) return value;
+
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+
+  return null;
+}
+
+function formatDate(date) {
+  return date ? date.toLocaleString() : "Date unavailable";
+}
+
+function updateCapacity() {
+  const remaining = Math.max(0, limitCount - borrowedCount);
+
+  $("currentBorrowed").textContent = borrowedCount;
+  $("borrowLimit").textContent = limitCount;
+  $("totalRequests").textContent = requestCount;
+  $("pendingRequests").textContent = pendingCount;
+  $("remainingSlot").textContent = remaining;
+
+  $("capacityBar").style.width =
+    (limitCount > 0 ? Math.min(100, remaining / limitCount * 100) : 0) + "%";
+
+  $("capacityText").textContent =
+    `${remaining} item slot(s) remaining out of ${limitCount}. ` +
+    "Pending requests are not counted as borrowed until approved.";
+}
+
+function setFormEnabled(enabled) {
+  const disabled = !enabled || isSubmitting;
+  $("itemSelect").disabled = disabled;
+  $("quantityInput").disabled = disabled;
+  $("proofInput").disabled = disabled;
+  $("submitButton").disabled = disabled;
+}
+
+function updateQuantityMaximum() {
+  const selected = availableItems.find(
+    item => item.id === $("itemSelect").value
+  );
+
+  const remaining = Math.max(0, limitCount - borrowedCount);
+  const max = selected
+    ? Math.min(itemStock(selected.data), remaining)
+    : 0;
+
+  $("quantityInput").max = String(max || 1);
+  $("quantityInput").placeholder = selected
+    ? `Quantity (max ${max})`
+    : "Select an item first";
+
+  if (selected && Number($("quantityInput").value) > max) {
+    $("quantityInput").value = max > 0 ? String(max) : "";
+  }
+}
+
+function renderItems() {
+  const select = $("itemSelect");
+  select.replaceChildren();
+
+  const first = document.createElement("option");
+  first.value = "";
+  first.textContent = "Select Item";
+  select.appendChild(first);
+
+  availableItems.sort((a, b) =>
+    itemName(a.data).localeCompare(itemName(b.data))
+  );
+
+  for (const entry of availableItems) {
+    const option = document.createElement("option");
+    option.value = entry.id;
+    option.textContent =
+      `${itemName(entry.data)} (${itemStock(entry.data)} available)`;
+    select.appendChild(option);
+  }
+
+  if (!availableItems.length) {
+    first.textContent = "No items currently in stock";
+  }
+
+  updateQuantityMaximum();
+}
+
+function renderRecent(requests, itemMap) {
+  const container = $("recentRequests");
+  container.replaceChildren();
+
+  if (!requests.length) {
+    const empty = document.createElement("p");
+    empty.className = "recent-empty";
+    empty.textContent = "Wala ka pang borrow requests.";
+    container.appendChild(empty);
+    return;
+  }
+
+  for (const request of requests) {
+    const card = document.createElement("div");
+    card.className = "recent-item";
+
+    const item = itemMap.get(requestItemId(request));
+    const name = request.item_name ||
+      request.itemName ||
+      (item ? itemName(item) : "Unknown item");
+
+    const heading = document.createElement("h4");
+    heading.textContent = "📦 " + name;
+
+    const quantity = document.createElement("p");
+    quantity.textContent = "Quantity: " + requestQuantity(request);
+
+    const statusLine = document.createElement("p");
+    statusLine.append("Status: ");
+
+    const status = statusOf(request);
+    const badge = document.createElement("span");
+    badge.className = ["pending", "approved", "rejected"].includes(status)
+      ? status
+      : "other-status";
+    badge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    statusLine.appendChild(badge);
+
+    const dateLine = document.createElement("p");
+    dateLine.className = "muted";
+    dateLine.textContent = formatDate(requestDate(request));
+
+    card.append(heading, quantity, statusLine, dateLine);
+    container.appendChild(card);
+  }
+}
+
+async function loadData() {
+  if (!currentUser) throw new Error("Walang naka-login na user.");
+
+  const uid = currentUser.uid;
+
+  const [profileSnap, itemsSnap, requestsSnap, logsSnap] =
+    await Promise.all([
+      getDoc(doc(db, "users", uid)),
+      getDocs(collection(db, "items")),
+      getDocs(query(
+        collection(db, "requests"),
+        where("user_id", "==", uid)
+      )),
+      getDocs(query(
+        collection(db, "borrow_logs"),
+        where("user_id", "==", uid)
+      ))
+    ]);
+
+  if (!profileSnap.exists()) {
+    showNotice(
+      "Walang user profile sa Firestore. Makipag-ugnayan sa administrator.",
+      "error"
+    );
+    setFormEnabled(false);
+    return;
+  }
+
+  profile = profileSnap.data();
+  const role = normalizeRole(profile.role);
+
+  $("profileName").textContent =
+    profile.username || profile.fullName || profile.full_name ||
+    profile.name || currentUser.displayName || "User";
+
+  $("profileEmail").textContent =
+    profile.institutional_email || profile.email ||
+    currentUser.email || "—";
+
+  $("profileRole").textContent =
+    role ? role.charAt(0).toUpperCase() + role.slice(1) : "Unknown";
+
+  $("dashboardLink").href =
+    ["teacher", "faculty"].includes(role)
+      ? "teacher_dashboard.html"
+      : "student_dashboard.html";
+
+  if (!canBorrow(role)) {
+    limitCount = BORROW_LIMIT;
+    availableItems = [];
+    renderItems();
+    updateCapacity();
+    renderRecent([], new Map());
+
+    showNotice(
+      "Ang borrowing page ay para lamang sa student, teacher, o faculty account.",
+      "error"
+    );
+
+    setFormEnabled(false);
+    return;
+  }
+
+  // Fixed limit for all authorized students and teachers.
+  limitCount = BORROW_LIMIT;
+
+  let borrowedFromLogs = 0;
+
+  logsSnap.forEach(logDoc => {
+    const log = logDoc.data();
+
+    if (String(log.status || "").toLowerCase() === "borrowed") {
+      borrowedFromLogs += requestQuantity(log);
+    }
+  });
+
+  borrowedCount = profile.current_borrowed != null
+    ? Math.max(0, num(profile.current_borrowed))
+    : borrowedFromLogs;
+
+  const requests = requestsSnap.docs.map(d => ({
+    id: d.id,
+    ...d.data()
+  }));
+
+  requestCount = requests.length;
+  pendingCount = requests.filter(
+    request => statusOf(request) === "pending"
+  ).length;
+
+  availableItems = [];
+  const itemMap = new Map();
+
+  itemsSnap.forEach(itemDoc => {
+    const data = itemDoc.data();
+    itemMap.set(itemDoc.id, data);
+
+    if (itemStock(data) > 0) {
+      availableItems.push({
+        id: itemDoc.id,
+        data
+      });
+    }
+  });
+
+  renderItems();
+  updateCapacity();
+
+  const recent = [...requests]
+    .sort((a, b) =>
+      (requestDate(b)?.getTime() || 0) -
+      (requestDate(a)?.getTime() || 0)
+    )
+    .slice(0, 5);
+
+  renderRecent(recent, itemMap);
+
+  const remaining = Math.max(0, limitCount - borrowedCount);
+  setFormEnabled(remaining > 0 && availableItems.length > 0);
+  updateQuantityMaximum();
+
+  if (remaining <= 0) {
+    showNotice(
+      "Naabot mo na ang borrow limit na 100 items. Mag-return muna ng item.",
+      "error"
+    );
+  } else if (!availableItems.length) {
+    showNotice("Walang available na item sa ngayon.", "info");
+  } else {
+    clearNotice();
+  }
+}
+
+$("itemSelect").addEventListener("change", () => {
+  $("quantityInput").value = "";
+  updateQuantityMaximum();
+  clearNotice();
+});
+
+$("quantityInput").addEventListener("input", () => {
+  const selected = availableItems.find(
+    item => item.id === $("itemSelect").value
+  );
+
+  if (!selected) return;
+
+  const remaining = Math.max(0, limitCount - borrowedCount);
+  const max = Math.min(itemStock(selected.data), remaining);
+  const value = Number($("quantityInput").value);
+
+  if ($("quantityInput").value && value > max) {
+    $("quantityInput").value = String(max);
+    showNotice(
+      `Maximum na puwede mong i-request sa item na ito ay ${max}.`,
+      "info"
+    );
+  }
+});
+
+$("proofInput").addEventListener("change", () => {
+  const file = $("proofInput").files?.[0];
+  const preview = $("proofPreview");
+
+  if (previewUrl) {
+    URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+  }
+
+  if (!file) {
+    preview.removeAttribute("src");
+    preview.classList.remove("show");
+    return;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    $("proofInput").value = "";
+    preview.removeAttribute("src");
+    preview.classList.remove("show");
+    showNotice("Image file lang ang puwedeng i-upload.", "error");
+    return;
+  }
+
+  if (file.size > MAX_PROOF_SIZE) {
+    $("proofInput").value = "";
+    preview.removeAttribute("src");
+    preview.classList.remove("show");
+    showNotice("Maximum file size ay 5 MB.", "error");
+    return;
+  }
+
+  previewUrl = URL.createObjectURL(file);
+  preview.src = previewUrl;
+  preview.classList.add("show");
+  clearNotice();
+});
+
+$("requestForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (!currentUser || !profile || isSubmitting) return;
+  clearNotice();
+
+  const itemId = $("itemSelect").value;
+  const quantity = Number($("quantityInput").value);
+  const proofFile = $("proofInput").files?.[0];
+
+  const selected = availableItems.find(item => item.id === itemId);
+
+  if (!canBorrow(profile.role)) {
+    showNotice("Hindi authorized ang account na ito para mag-borrow.", "error");
+    return;
+  }
+
+  if (!selected) {
+    showNotice("Pumili ng valid na item.", "error");
+    return;
+  }
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    showNotice("Maglagay ng whole-number quantity na hindi bababa sa 1.", "error");
+    return;
+  }
+
+  if (!proofFile || !proofFile.type.startsWith("image/")) {
+    showNotice("Required ang borrowing proof image.", "error");
+    return;
+  }
+
+  if (proofFile.size > MAX_PROOF_SIZE) {
+    showNotice("Maximum file size ay 5 MB.", "error");
+    return;
+  }
+
+  const remaining = Math.max(0, BORROW_LIMIT - borrowedCount);
+
+  if (quantity > remaining) {
+    showNotice(
+      `Lampas sa borrow limit. ${remaining} item(s) na lang ang natitira.`,
+      "error"
+    );
+    return;
+  }
+
+  if (quantity > itemStock(selected.data)) {
+    showNotice(
+      `Hindi sapat ang stock. ${itemStock(selected.data)} item(s) na lang ang available.`,
+      "error"
+    );
+    return;
+  }
+
+  isSubmitting = true;
+  setFormEnabled(false);
+  $("submitButton").textContent = "⏳ Checking request…";
+
+  let uploadedPath = null;
+  let requestSaved = false;
+
+  try {
+    const [freshProfileSnap, freshItemSnap] = await Promise.all([
+      getDoc(doc(db, "users", currentUser.uid)),
+      getDoc(doc(db, "items", itemId))
+    ]);
+
+    if (!freshProfileSnap.exists() || !freshItemSnap.exists()) {
+      throw new Error("Hindi na available ang profile o item.");
+    }
+
+    const freshProfile = freshProfileSnap.data();
+    const freshItem = freshItemSnap.data();
+
+    if (!canBorrow(freshProfile.role)) {
+      throw new Error("Hindi authorized ang account na ito para mag-borrow.");
+    }
+
+    const freshLimit = BORROW_LIMIT;
+    const freshBorrowed = freshProfile.current_borrowed != null
+      ? Math.max(0, num(freshProfile.current_borrowed))
+      : borrowedCount;
+
+    if (freshBorrowed + quantity > freshLimit) {
+      throw new Error(`Lampas sa borrow limit na ${freshLimit} items.`);
+    }
+
+    if (quantity > itemStock(freshItem)) {
+      throw new Error(
+        "Kulang na ang stock ng item na ito. I-refresh ang page at subukan ulit."
+      );
+    }
+
+    $("submitButton").textContent = "⏳ Uploading proof…";
+
+    const safeName = proofFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const uniqueId = crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    uploadedPath =
+      `borrow_proofs/${currentUser.uid}/${uniqueId}_${safeName}`;
+
+    const proofRef = ref(storage, uploadedPath);
+
+    await uploadBytes(proofRef, proofFile, {
+      contentType: proofFile.type
+    });
+
+    const proofUrl = await getDownloadURL(proofRef);
+
+    $("submitButton").textContent = "⏳ Saving request…";
+
+    await addDoc(collection(db, "requests"), {
+      user_id: currentUser.uid,
+      item_id: itemId,
+      item_name: itemName(freshItem),
+      quantity: quantity,
+      proof_borrow: proofUrl,
+      proof_path: uploadedPath,
+      status: "pending",
+      request_date: serverTimestamp(),
+      username:
+        freshProfile.username ||
+        freshProfile.fullName ||
+        freshProfile.full_name ||
+        currentUser.displayName ||
+        "",
+      institutional_email:
+        freshProfile.institutional_email ||
+        freshProfile.email ||
+        currentUser.email ||
+        "",
+      role: normalizeRole(freshProfile.role)
+    });
+
+    requestSaved = true;
+
+    $("requestForm").reset();
+    $("proofPreview").classList.remove("show");
+    $("proofPreview").removeAttribute("src");
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+    }
+
+    showNotice(
+      "Matagumpay na naisumite ang borrow request! Hintayin ang approval ng authorized staff.",
+      "success"
+    );
+
+    try {
+      await loadData();
+
+      showNotice(
+        "Matagumpay na naisumite ang borrow request! Hintayin ang approval ng authorized staff.",
+        "success"
+      );
+    } catch (refreshError) {
+      console.error("Request saved, but refresh failed:", refreshError);
+
+      showNotice(
+        "Nai-save ang request mo, pero hindi na-refresh ang listahan. I-refresh ang page para makita ang update.",
+        "success"
+      );
+    }
+
+  } catch (error) {
+    console.error("Borrow request submission error:", error);
+
+    if (uploadedPath && !requestSaved) {
+      try {
+        await deleteObject(ref(storage, uploadedPath));
+      } catch (cleanupError) {
+        console.warn("Could not clean up unused proof:", cleanupError);
+      }
+    }
+
+    showNotice(
+      (requestSaved
+        ? "Na-save ang request pero may error pagkatapos nito. "
+        : "Hindi naisumite ang request. ") +
+      (error.code || "") + " " +
+      (error.message || "Subukan ulit."),
+      requestSaved ? "success" : "error"
+    );
+
+  } finally {
+    isSubmitting = false;
+    $("submitButton").textContent = "🚀 Submit Borrow Request";
+
+    const remainingNow = Math.max(0, limitCount - borrowedCount);
+
+    setFormEnabled(
+      remainingNow > 0 &&
+      availableItems.length > 0 &&
+      canBorrow(profile?.role)
+    );
+
+    updateQuantityMaximum();
+  }
+});
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  currentUser = user;
+
+  try {
+    await loadData();
+  } catch (error) {
+    console.error(
+      "Request page load error:",
+      error.code,
+      error.message,
+      error
+    );
+
+    showNotice(
+      "Hindi ma-load ang borrowing data. I-check ang Firestore Rules at user role. " +
+      (error.code || "") + " " +
+      (error.message || ""),
+      "error"
+    );
+
+    $("recentRequests").textContent =
+      "Unable to load recent requests.";
+
+    setFormEnabled(false);
+  }
+});
+</script>
+</body>
+</html>

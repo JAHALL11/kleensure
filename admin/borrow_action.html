@@ -1,0 +1,646 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Borrow / Return Inventory | PTC</title>
+
+<style>
+:root {
+  --green: #00b894;
+  --cyan: #00cec9;
+  --navy: #152234;
+  --bg: #f2f6fa;
+  --card: #fff;
+  --text: #182433;
+  --muted: #68778a;
+  --border: #e0e7ef;
+  --red: #d63031;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+header {
+  background: linear-gradient(120deg, #111827, #214d66);
+  color: white;
+  padding: 20px;
+}
+.header-inner {
+  max-width: 1050px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #ffffff20;
+  font-size: 26px;
+}
+h1 { margin: 0 0 5px; font-size: 23px; }
+header p { margin: 0; color: #d8e8f5; font-size: 13px; }
+main { max-width: 1050px; margin: auto; padding: 25px 15px 40px; }
+.welcome { margin-bottom: 20px; }
+.welcome h2 { margin: 0 0 7px; }
+.muted { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 23px;
+  box-shadow: 0 7px 24px #172b4d0b;
+}
+.card h3 { margin: 0 0 7px; font-size: 19px; }
+.card p { margin: 0 0 17px; }
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 15px 0 7px;
+}
+input, select {
+  width: 100%;
+  min-height: 45px;
+  padding: 11px 12px;
+  border: 1px solid #cfd9e5;
+  border-radius: 10px;
+  background: white;
+  color: #182433;
+  font: inherit;
+}
+input:focus, select:focus {
+  outline: 2px solid #00b89455;
+  border-color: var(--green);
+}
+.btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.primary {
+  background: linear-gradient(120deg, var(--green), var(--cyan));
+  color: white;
+}
+.secondary { background: #eaf0f6; color: #24354a; }
+.danger { background: var(--red); color: white; }
+.full { width: 100%; margin-top: 19px; min-height: 46px; }
+.message {
+  display: none;
+  margin: 0 0 18px;
+  padding: 14px;
+  border-radius: 10px;
+  line-height: 1.6;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.message.show { display: block; }
+.message.error { background: #fff0f0; color: #962626; border: 1px solid #ffd1d1; }
+.message.success { background: #e9f9f0; color: #116a43; border: 1px solid #c7efd9; }
+.message.info { background: #edf5ff; color: #214d91; border: 1px solid #cfe2ff; }
+.account {
+  background: #f0faf8;
+  border: 1px solid #d6f0e9;
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  line-height: 1.8;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.code-result {
+  margin-top: 14px;
+  padding: 13px;
+  border-radius: 10px;
+  background: #edf8f4;
+  color: #087f5b;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.code-result strong { font-size: 18px; }
+.note { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 12px; }
+footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; }
+@media(max-width: 700px) {
+  .grid { grid-template-columns: 1fr; }
+  .card { padding: 19px; }
+  h1 { font-size: 20px; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="logo">📦</div>
+      <div>
+        <h1>Inventory Borrowing</h1>
+        <p>PTC Institutional Inventory Management System</p>
+      </div>
+    </div>
+    <a class="btn secondary" href="dashboard.html">← Dashboard</a>
+  </div>
+</header>
+
+<main>
+  <section class="welcome">
+    <h2>Borrow or Return an Item</h2>
+    <div class="muted">
+      Select an inventory item to borrow, or enter your borrowing code to return it.
+    </div>
+  </section>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+
+  <div class="account">
+    <strong>Signed-in account</strong><br>
+    <span id="accountEmail">Checking account…</span><br>
+    <span id="accountRole">Checking role…</span>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h3>📤 Borrow an Item</h3>
+      <p class="muted">Borrowing will reduce the available stock by one unit.</p>
+
+      <form id="borrowForm">
+        <label for="borrowItem">Inventory Item *</label>
+        <select id="borrowItem" required>
+          <option value="">Loading inventory…</option>
+        </select>
+
+        <label for="borrowerName">Borrower Name *</label>
+        <input id="borrowerName" type="text"
+          maxlength="120" minlength="2"
+          placeholder="Enter your full name" required>
+
+        <button class="btn primary full" id="borrowButton" type="submit">
+          Confirm Borrowing
+        </button>
+      </form>
+
+      <div id="borrowCodeResult" class="code-result" hidden></div>
+      <div class="note">
+        Keep your borrowing code. It is required to return the same item.
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>📥 Return an Item</h3>
+      <p class="muted">Enter the item and the active borrowing code.</p>
+
+      <form id="returnForm">
+        <label for="returnItem">Inventory Item *</label>
+        <select id="returnItem" required>
+          <option value="">Loading inventory…</option>
+        </select>
+
+        <label for="borrowCode">Borrowing Code *</label>
+        <input id="borrowCode" type="text"
+          maxlength="20" placeholder="e.g. BRW-1234" required>
+
+        <button class="btn danger full" id="returnButton" type="submit">
+          Confirm Return
+        </button>
+      </form>
+
+      <div class="note">
+        The code and selected item must match an active borrowing record.
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>PTC Inventory System · <span id="year"></span></footer>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  runTransaction,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+
+let currentUser = null;
+let currentProfile = null;
+let inventory = [];
+let working = false;
+
+const ALLOWED_ROLES = [
+  "admin", "administrator", "manager", "officer", "lead man", "lead_man"
+];
+
+function roleName(value) {
+  const role = String(value || "").trim().toLowerCase().replace(/[_-]+/g, " ");
+  if (role === "teacher" || role === "faculty" || role === "staff") return "Manager / Officer";
+  if (role === "student") return "Lead Man";
+  if (role === "admin" || role === "administrator") return "Admin";
+  if (role === "lead man") return "Lead Man";
+  if (role === "manager" || role === "officer") return "Manager / Officer";
+  return role;
+}
+
+function showMessage(text, type = "info") {
+  const el = $("message");
+  el.textContent = text;
+  el.className = "message show " + type;
+  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function hideMessage() {
+  $("message").className = "message";
+  $("message").textContent = "";
+}
+
+function safeText(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  })[c]);
+}
+
+function itemName(item) {
+  return item.item_name || item.itemName || item.name || item.description || "Unnamed item";
+}
+
+function itemQuantity(item) {
+  return Number(item.quantity ?? item.stock ?? 0);
+}
+
+function setBusy(value) {
+  working = value;
+  $("borrowButton").disabled = value;
+  $("returnButton").disabled = value;
+  $("borrowButton").textContent = value ? "Please wait…" : "Confirm Borrowing";
+  $("returnButton").textContent = value ? "Please wait…" : "Confirm Return";
+}
+
+function makeBorrowCode() {
+  return "BRW-" + String(Math.floor(1000 + Math.random() * 9000));
+}
+
+async function loadInventory() {
+  const snapshot = await getDocs(collection(db, "items"));
+
+  inventory = snapshot.docs.map(snap => ({
+    id: snap.id,
+    ...snap.data()
+  }));
+
+  const available = inventory.filter(item =>
+    itemQuantity(item) > 0 &&
+    !["damaged", "maintenance", "missing parts"].includes(
+      String(item.condition_status || item.condition || "").trim().toLowerCase()
+    )
+  );
+
+  const options = [
+    '<option value="">Select an inventory item</option>',
+    ...available.map(item =>
+      `<option value="${safeText(item.id)}">${safeText(itemName(item))} — Stock: ${itemQuantity(item)}</option>`
+    )
+  ].join("");
+
+  $("borrowItem").innerHTML = options;
+
+  // For return, include zero-stock items because they may currently be borrowed.
+  $("returnItem").innerHTML = [
+    '<option value="">Select the borrowed item</option>',
+    ...inventory.map(item =>
+      `<option value="${safeText(item.id)}">${safeText(itemName(item))} — Stock: ${itemQuantity(item)}</option>`
+    )
+  ].join("");
+}
+
+async function generateUnusedCode(transaction) {
+  // Uses a dedicated document ID so codes can be checked atomically.
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const code = makeBorrowCode();
+    const ref = doc(db, "borrow_logs", code);
+    const existing = await transaction.get(ref);
+
+    if (!existing.exists()) {
+      return { code, ref };
+    }
+  }
+
+  throw new Error("Could not generate a unique borrow code. Please try again.");
+}
+
+async function borrowItem(event) {
+  event.preventDefault();
+  if (working) return;
+  hideMessage();
+
+  const itemId = $("borrowItem").value;
+  const borrowerName = $("borrowerName").value.trim();
+
+  if (!itemId) {
+    showMessage("Pumili muna ng inventory item.", "error");
+    return;
+  }
+
+  if (borrowerName.length < 2) {
+    showMessage("Ilagay ang tamang pangalan ng borrower.", "error");
+    return;
+  }
+
+  const itemRef = doc(db, "items", itemId);
+  setBusy(true);
+
+  try {
+    let createdCode = "";
+
+    await runTransaction(db, async transaction => {
+      const itemSnap = await transaction.get(itemRef);
+
+      if (!itemSnap.exists()) {
+        throw new Error("itemnotfound");
+      }
+
+      const item = itemSnap.data();
+      const quantity = itemQuantity(item);
+
+      if (quantity <= 0) {
+        throw new Error("nostock");
+      }
+
+      const condition = String(
+        item.condition_status || item.condition || "Good"
+      ).trim().toLowerCase();
+
+      if (["damaged", "maintenance", "missing parts"].includes(condition)) {
+        throw new Error("itemunavailable");
+      }
+
+      // Duplicate check. This query requires suitable Firestore read access.
+      const duplicateQuery = query(
+        collection(db, "borrow_logs"),
+        where("item_id", "==", itemId),
+        where("borrower_name", "==", borrowerName),
+        where("status", "==", "borrowed")
+      );
+
+      const duplicateSnap = await transaction.get(duplicateQuery);
+
+      if (!duplicateSnap.empty) {
+        throw new Error("alreadyborrowed");
+      }
+
+      const { code, ref: logRef } = await generateUnusedCode(transaction);
+      createdCode = code;
+
+      transaction.update(itemRef, {
+        quantity: quantity - 1
+      });
+
+      transaction.set(logRef, {
+        item_id: itemId,
+        user_id: currentUser.uid,
+        borrower_name: borrowerName,
+        borrower_email: currentUser.email || "",
+        borrow_code: code,
+        type: "borrow",
+        status: "borrowed",
+        date_borrowed: serverTimestamp(),
+        date_returned: null,
+        createdAt: serverTimestamp(),
+        createdBy: currentUser.uid
+      });
+    });
+
+    $("borrowCodeResult").hidden = false;
+    $("borrowCodeResult").innerHTML =
+      `Borrowing successful!<br>Your code is:<br><strong>${safeText(createdCode)}</strong>`;
+
+    $("borrowForm").reset();
+    await loadInventory();
+
+    showMessage(
+      "Matagumpay ang borrowing. Itabi ang borrowing code para sa return.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Borrowing failed:", error);
+
+    const messages = {
+      itemnotfound: "Hindi na makita ang napiling item.",
+      nostock: "Wala nang available stock para sa item na ito.",
+      itemunavailable: "Hindi available ang item dahil sa condition nito.",
+      alreadyborrowed: "May active borrowing ka na para sa item na ito."
+    };
+
+    showMessage(
+      messages[error.message] ||
+      "Hindi natuloy ang borrowing. " +
+      (error.code === "permission-denied"
+        ? "Walang sapat na Firestore permissions. Suriin ang Rules."
+        : error.message || "Pakisubukan muli."),
+      "error"
+    );
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function returnItem(event) {
+  event.preventDefault();
+  if (working) return;
+  hideMessage();
+
+  const itemId = $("returnItem").value;
+  const code = $("borrowCode").value.trim().toUpperCase();
+
+  if (!itemId || !code) {
+    showMessage("Piliin ang item at ilagay ang borrowing code.", "error");
+    return;
+  }
+
+  const itemRef = doc(db, "items", itemId);
+  const logRef = doc(db, "borrow_logs", code);
+
+  setBusy(true);
+
+  try {
+    await runTransaction(db, async transaction => {
+      const logSnap = await transaction.get(logRef);
+      const itemSnap = await transaction.get(itemRef);
+
+      if (!itemSnap.exists()) {
+        throw new Error("itemnotfound");
+      }
+
+      if (!logSnap.exists()) {
+        throw new Error("idnotmatch");
+      }
+
+      const log = logSnap.data();
+
+      if (String(log.item_id) !== String(itemId)) {
+        throw new Error("idnotmatch");
+      }
+
+      if (log.status !== "borrowed") {
+        throw new Error("alreadyreturned");
+      }
+
+      // A Lead Man may return only their own active borrowing.
+      // Manager / Officer and Admin can process returns as well.
+      const role = String(currentProfile.role || "")
+        .trim().toLowerCase().replace(/[_-]+/g, " ");
+
+      const isAdminOrManager = [
+        "admin", "administrator", "manager", "officer",
+        "teacher", "faculty", "staff"
+      ].includes(role);
+
+      if (!isAdminOrManager && log.user_id !== currentUser.uid) {
+        throw new Error("notowner");
+      }
+
+      const item = itemSnap.data();
+      const quantity = itemQuantity(item);
+
+      transaction.update(itemRef, {
+        quantity: quantity + 1
+      });
+
+      transaction.update(logRef, {
+        type: "return",
+        status: "returned",
+        date_returned: serverTimestamp(),
+        returnedBy: currentUser.uid
+      });
+    });
+
+    $("returnForm").reset();
+    await loadInventory();
+
+    showMessage(
+      "Matagumpay ang return. Na-update ang stock at borrowing record.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Return failed:", error);
+
+    const messages = {
+      itemnotfound: "Hindi makita ang napiling inventory item.",
+      idnotmatch: "Hindi tugma ang borrowing code at napiling item.",
+      alreadyreturned: "Naibalik na ang item o hindi na active ang borrowing record.",
+      notowner: "Hindi mo maaaring i-return ang borrowing record ng ibang borrower."
+    };
+
+    showMessage(
+      messages[error.message] ||
+      "Hindi natuloy ang return. " +
+      (error.code === "permission-denied"
+        ? "Walang sapat na Firestore permissions. Suriin ang Rules."
+        : error.message || "Pakisubukan muli."),
+      "error"
+    );
+  } finally {
+    setBusy(false);
+  }
+}
+
+$("borrowForm").addEventListener("submit", borrowItem);
+$("returnForm").addEventListener("submit", returnItem);
+$("year").textContent = new Date().getFullYear();
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.href = "../login.html";
+    return;
+  }
+
+  currentUser = user;
+
+  try {
+    const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+    if (!profileSnap.exists()) {
+      $("accountEmail").textContent = user.email || "Signed in";
+      $("accountRole").textContent = "Profile not found";
+      showMessage(
+        "Walang users profile document na tumutugma sa iyong Firebase UID. Makipag-ugnayan sa administrator.",
+        "error"
+      );
+      $("borrowButton").disabled = true;
+      $("returnButton").disabled = true;
+      return;
+    }
+
+    currentProfile = profileSnap.data();
+
+    const rawRole = String(currentProfile.role || "")
+      .trim().toLowerCase().replace(/[_-]+/g, " ");
+
+    if (!ALLOWED_ROLES.includes(rawRole)) {
+      showMessage("Walang permission ang account mo para sa borrowing page.", "error");
+      $("borrowButton").disabled = true;
+      $("returnButton").disabled = true;
+      return;
+    }
+
+    $("accountEmail").textContent = user.email || "Signed in";
+    $("accountRole").textContent = "Role: " + roleName(currentProfile.role);
+
+    const profileName =
+      currentProfile.fullName ||
+      currentProfile.fullname ||
+      currentProfile.name ||
+      currentProfile.displayName ||
+      "";
+
+    $("borrowerName").value = profileName;
+
+    await loadInventory();
+  } catch (error) {
+    console.error("Initialization failed:", error);
+    showMessage(
+      "Hindi ma-load ang account o inventory. " +
+      (error.code || error.message || "Suriin ang Firestore Rules."),
+      "error"
+    );
+  }
+});
+</script>
+</body>
+</html>

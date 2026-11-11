@@ -1,0 +1,325 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faculty Borrow Logs | PTC Inventory</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#07111f,#0f172a,#001f2f);min-height:100vh;padding:25px;color:white;overflow-x:hidden}
+.nav,.alerts,.stats,.card{max-width:1500px;margin-left:auto;margin-right:auto}
+.nav{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:25px}
+.nav-links{display:flex;gap:12px;flex-wrap:wrap}
+.nav a{display:inline-block;padding:13px 18px;border-radius:16px;text-decoration:none;font-weight:bold;background:rgba(255,255,255,.08);color:white;transition:.3s}
+.nav a:hover{background:#6c5ce7;transform:translateY(-2px)}
+.alerts{display:flex;flex-direction:column;gap:15px;margin-bottom:25px}
+.alert{padding:18px;border-radius:18px;font-weight:bold;box-shadow:0 5px 20px #0004;line-height:1.5}
+.damage-alert{background:linear-gradient(135deg,#ff4757,#ff6b81)}
+.parts-alert{background:linear-gradient(135deg,#ff9f43,#feca57);color:#211500}
+.overdue-alert{background:linear-gradient(135deg,#6c5ce7,#a29bfe)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;margin-bottom:25px}
+.stat,.card{background:rgba(255,255,255,.08);backdrop-filter:blur(15px);box-shadow:0 10px 35px #0004}
+.stat{padding:24px;border-radius:25px}
+.stat h3{font-size:15px;margin-bottom:10px;color:#81ecec}
+.stat p{font-size:36px;font-weight:bold}
+.card{padding:30px;border-radius:30px}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:25px}
+.title{font-size:clamp(26px,4vw,42px);font-weight:bold}
+.search{padding:14px 18px;border:0;border-radius:15px;width:min(100%,340px);font-size:15px}
+.table-wrapper{overflow-x:auto;border-radius:12px}
+table{width:100%;min-width:1250px;border-collapse:collapse}
+th{background:#6c5ce7;padding:15px;text-align:left;white-space:nowrap}
+td{padding:14px;border-bottom:1px solid #ffffff18;vertical-align:middle;max-width:300px;overflow-wrap:anywhere}
+tr:hover td{background:#ffffff09}
+.badge{padding:8px 12px;border-radius:30px;font-size:12px;font-weight:bold;display:inline-block;white-space:nowrap}
+.borrowed{background:#fdcb6e;color:#222}
+.returned,.good{background:#00b894;color:#fff}
+.overdue,.damaged{background:#ff4757;color:white}
+.parts{background:#ff9f43;color:#211500}
+.proof{width:70px;height:70px;object-fit:cover;border-radius:12px;cursor:pointer}
+.action{display:inline-block;padding:10px 14px;border-radius:12px;background:linear-gradient(135deg,#6c5ce7,#00cec9);color:white;text-decoration:none;font-weight:bold;white-space:nowrap;border:0;cursor:pointer}
+.repair{background:linear-gradient(135deg,#ff9f43,#feca57);color:#211500}
+.fixed{color:#55efc4;font-weight:bold}
+.footer{text-align:center;margin-top:25px;color:#aaa;font-size:13px}
+.message{padding:15px;border-radius:12px;margin-bottom:20px;background:#075985;line-height:1.5}
+.empty{text-align:center;padding:30px;color:#cbd5e1}
+@keyframes pulse{50%{opacity:.65;transform:scale(1.015)}}
+.blink{animation:pulse .9s infinite}
+@media(max-width:700px){body{padding:13px}.card{padding:18px;border-radius:22px}.stat p{font-size:30px}.nav a{padding:11px 13px}}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-links">
+    <a href="faculty_dashboard.html">🏠 Dashboard</a>
+    <a href="faculty_profile.html">👤 Profile</a>
+    <a href="faculty_request.html">📦 Borrow</a>
+  </div>
+  <div class="nav-links">
+    <a href="faculty_borrow_item.html">➕ New Request</a>
+    <a href="#" id="logoutBtn">🚪 Logout</a>
+  </div>
+</div>
+
+<div id="alerts" class="alerts"></div>
+
+<div class="stats">
+  <div class="stat"><h3>📜 My Total Logs</h3><p id="totalLogs">—</p></div>
+  <div class="stat"><h3>📦 Active Borrowed</h3><p id="borrowedCount">—</p></div>
+  <div class="stat"><h3>✅ Returned</h3><p id="returnedCount">—</p></div>
+  <div class="stat"><h3>⚠ Overdue</h3><p id="overdueCount">—</p></div>
+</div>
+
+<div class="card">
+  <div class="header">
+    <div class="title">📜 Faculty Borrow Logs</div>
+    <input id="searchInput" class="search" type="search" placeholder="Search item, code, condition...">
+  </div>
+
+  <div id="message" class="message">Loading your borrow logs...</div>
+
+  <div class="table-wrapper">
+    <table id="logsTable">
+      <thead>
+        <tr>
+          <th>Item</th><th>Quantity</th><th>Status</th>
+          <th>Borrow Date</th><th>Due Date</th><th>Return Date</th>
+          <th>Borrow Code</th><th>Condition</th><th>Return Notes</th>
+          <th>Return Proof</th><th>Borrow Proof</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="logsBody"></tbody>
+    </table>
+  </div>
+  <div class="footer">PTC Institutional Inventory System © 2026</div>
+</div>
+
+<script type="module">
+import {auth,db} from "./firebase.js";
+import {onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {collection,doc,getDoc,getDocs,query,where} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $=id=>document.getElementById(id);
+let allLogs=[];
+let ready=false;
+
+function safe(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+
+function dateValue(value){
+  if(!value)return null;
+  if(typeof value.toDate==="function")return value.toDate();
+  if(typeof value==="number")return new Date(value);
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?null:d;
+}
+
+function dateText(value){
+  const d=dateValue(value);
+  return d?d.toLocaleString():"—";
+}
+
+function isOverdue(log){
+  const due=dateValue(log.due_date);
+  return String(log.status||"").toLowerCase()==="borrowed"
+    && due && due.getTime()<Date.now();
+}
+
+function imageCell(url,label){
+  if(!url)return label==="Borrow Proof"?"No Proof":"—";
+  // Escape the URL before inserting it into HTML attributes.
+  const u=safe(url);
+  return `<a href="${u}" target="_blank" rel="noopener noreferrer">
+    <img class="proof" src="${u}" alt="${label}" loading="lazy"
+      onerror="this.style.display='none';this.parentElement.textContent='Image unavailable';">
+  </a>`;
+}
+
+function conditionBadge(status){
+  const s=String(status||"").toLowerCase();
+  if(s==="damaged")return '<span class="badge damaged">🚨 DAMAGED</span>';
+  if(s==="missing_parts"||s==="missing parts")return '<span class="badge parts">🧩 MISSING PARTS</span>';
+  if(s==="good")return '<span class="badge good">✅ GOOD</span>';
+  return "—";
+}
+
+function notesCell(notes){
+  if(!notes)return "—";
+  const n=String(notes);
+  const low=n.toLowerCase();
+  let color="#55efc4",background="#00b89420",border="#00b894";
+  if(low.includes("damaged")){
+    color="#ff6b81";background="#ff475720";border="#ff4757";
+  }else if(low.includes("missing")||low.includes("parts")){
+    color="#ffb347";background="#ff9f4320";border="#ff9f43";
+  }
+  return `<div style="padding:12px;border-radius:12px;background:${background};color:${color};border-left:4px solid ${border};white-space:pre-wrap">${safe(n)}</div>`;
+}
+
+function actionCell(log){
+  const status=String(log.status||"").toLowerCase();
+  const maintenance=String(log.maintenance_status||"").toLowerCase();
+  const id=encodeURIComponent(log.id);
+
+  if(status==="borrowed"){
+    return `<a class="action" href="faculty_return_item.html?id=${id}">↩ Return</a>`;
+  }
+  if(maintenance==="needs_repair"){
+    return `<a class="action repair" href="faculty_repair_item.html?id=${id}">🔧 Fix Item</a>`;
+  }
+  if(maintenance==="fixed"){
+    return '<span class="fixed">🛠 FIXED</span>';
+  }
+  return '<span class="fixed">✔ Completed</span>';
+}
+
+function render(){
+  const filter=$("searchInput").value.trim().toLowerCase();
+  const filtered=allLogs.filter(log=>{
+    const item=log.item_name||"";
+    const haystack=[
+      item,log.status,log.borrow_code,log.return_status,
+      log.return_condition,log.quantity,log.date_borrowed,log.due_date
+    ].join(" ").toLowerCase();
+    return haystack.includes(filter);
+  });
+
+  $("logsBody").innerHTML=filtered.map(log=>{
+    const status=String(log.status||"").toLowerCase();
+    const overdue=isOverdue(log);
+    const rowStyle=String(log.return_status||"").toLowerCase()==="damaged"
+      ?"background:#ff47571f"
+      :["missing_parts","missing parts"].includes(String(log.return_status||"").toLowerCase())
+        ?"background:#ff9f431f":"";
+
+    let statusHTML=status==="borrowed"
+      ? overdue?'<span class="badge overdue">Overdue</span>':'<span class="badge borrowed">Borrowed</span>'
+      : status==="returned"?'<span class="badge returned">Returned</span>'
+      : `<span class="badge">${safe(log.status||"Unknown")}</span>`;
+
+    return `<tr style="${rowStyle}">
+      <td>📦 ${safe(log.item_name||"Unknown item")}</td>
+      <td>${safe(log.quantity??"—")}</td>
+      <td>${statusHTML}</td>
+      <td>${safe(dateText(log.date_borrowed))}</td>
+      <td>${safe(dateText(log.due_date))}</td>
+      <td>${safe(dateText(log.date_returned))}</td>
+      <td>${safe(log.borrow_code||"—")}</td>
+      <td>${conditionBadge(log.return_status)}</td>
+      <td>${notesCell(log.return_condition)}</td>
+      <td>${imageCell(log.return_proof,"Return Proof")}</td>
+      <td>${imageCell(log.proof_borrow,"Borrow Proof")}</td>
+      <td>${actionCell(log)}</td>
+    </tr>`;
+  }).join("");
+
+  if(!filtered.length){
+    $("logsBody").innerHTML=`<tr><td colspan="12" class="empty">No matching borrow logs found.</td></tr>`;
+  }
+}
+
+function updateStats(){
+  const borrowed=allLogs.filter(x=>String(x.status||"").toLowerCase()==="borrowed").length;
+  const returned=allLogs.filter(x=>String(x.status||"").toLowerCase()==="returned").length;
+  const overdue=allLogs.filter(isOverdue).length;
+  const damaged=allLogs.filter(x=>String(x.return_status||"").toLowerCase()==="damaged").length;
+  const missing=allLogs.filter(x=>["missing_parts","missing parts"].includes(String(x.return_status||"").toLowerCase())).length;
+
+  $("totalLogs").textContent=allLogs.length;
+  $("borrowedCount").textContent=borrowed;
+  $("returnedCount").textContent=returned;
+  $("overdueCount").textContent=overdue;
+
+  const alerts=[];
+  if(damaged)alerts.push(`<div class="alert damage-alert blink">🚨 CRITICAL ALERT: ${damaged} damaged item(s) need inspection immediately.</div>`);
+  if(missing)alerts.push(`<div class="alert parts-alert blink">🧩 ALERT: ${missing} returned item(s) with missing parts.</div>`);
+  if(overdue)alerts.push(`<div class="alert overdue-alert">⏰ ALERT: ${overdue} overdue borrowed item(s).</div>`);
+  $("alerts").innerHTML=alerts.join("");
+}
+
+async function loadLogs(user){
+  const profileSnap=await getDoc(doc(db,"users",user.uid));
+  if(!profileSnap.exists())throw new Error("Your user profile was not found in Firestore.");
+
+  const profile=profileSnap.data();
+  if(String(profile.role||"").toLowerCase()!=="faculty"){
+    throw new Error("This page is for Faculty accounts only.");
+  }
+
+  // IMPORTANT: borrowed log user_id values must use the Auth UID.
+  const q=query(collection(db,"borrow_logs"),where("user_id","==",user.uid));
+  const snapshot=await getDocs(q);
+
+  const itemIds=[...new Set(snapshot.docs.map(d=>{
+    const v=d.data().item_id;
+    return v==null?null:String(v);
+  }).filter(Boolean))];
+
+  const itemPairs=await Promise.all(itemIds.map(async id=>{
+    try{
+      const itemSnap=await getDoc(doc(db,"items",id));
+      return [id,itemSnap.exists()?itemSnap.data():null];
+    }catch(error){
+      console.warn("Cannot read item",id,error);
+      return [id,null];
+    }
+  }));
+
+  const itemMap=new Map(itemPairs);
+
+  allLogs=snapshot.docs.map(d=>{
+    const data=d.data();
+    const item=itemMap.get(String(data.item_id))||{};
+    return {
+      id:d.id,
+      ...data,
+      item_name:data.item_name||item.item_name||item.name||"Unknown item"
+    };
+  });
+
+  allLogs.sort((a,b)=>{
+    const da=dateValue(a.date_borrowed)?.getTime()||0;
+    const dbb=dateValue(b.date_borrowed)?.getTime()||0;
+    return dbb-da;
+  });
+
+  updateStats();
+  render();
+  $("message").style.display="none";
+  ready=true;
+}
+
+$("searchInput").addEventListener("input",()=>{if(ready)render();});
+
+$("logoutBtn").addEventListener("click",async event=>{
+  event.preventDefault();
+  try{
+    await signOut(auth);
+    location.href="login.html";
+  }catch(error){
+    $("message").style.display="block";
+    $("message").textContent="Logout failed: "+error.message;
+  }
+});
+
+onAuthStateChanged(auth,async user=>{
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+  try{
+    await loadLogs(user);
+  }catch(error){
+    console.error(error);
+    $("message").style.display="block";
+    $("message").textContent=error.message||"Unable to load your borrow logs. Check Firestore rules and document IDs.";
+  }
+});
+</script>
+</body>
+</html>

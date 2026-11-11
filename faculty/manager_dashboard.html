@@ -1,0 +1,232 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faculty Dashboard | PTC Inventory</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#0b1320,#0f172a,#001f2f);min-height:100vh;padding:30px;color:white;overflow-x:hidden}
+.header{max-width:1400px;margin:auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;margin-bottom:30px}
+.logo{font-size:clamp(26px,4vw,40px);font-weight:bold}
+.nav{display:flex;gap:12px;flex-wrap:wrap}
+.nav a{padding:14px 20px;border-radius:16px;text-decoration:none;font-weight:bold;background:rgba(255,255,255,.08);border:1px solid #ffffff14;color:white;transition:.3s}
+.nav a:hover{background:#00cec9;color:#0f172a;transform:translateY(-2px)}
+.profile{max-width:1400px;margin:auto;background:rgba(255,255,255,.08);backdrop-filter:blur(15px);padding:35px;border-radius:30px;box-shadow:0 10px 40px #0005;margin-bottom:30px}
+.profile-top{display:flex;align-items:center;gap:25px;flex-wrap:wrap}
+.avatar{width:120px;height:120px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,#6c5ce7,#00cec9);display:flex;justify-content:center;align-items:center;font-size:50px;font-weight:bold;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.info h1{font-size:clamp(27px,4vw,38px);margin-bottom:10px;overflow-wrap:anywhere}
+.info p{font-size:16px;margin-bottom:8px;color:#ddd;overflow-wrap:anywhere}
+.stats{max-width:1400px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:30px}
+.stat{padding:25px;border-radius:25px;background:rgba(255,255,255,.08);backdrop-filter:blur(15px);border:1px solid #ffffff14;box-shadow:0 10px 35px #0004}
+.stat h3{font-size:16px;margin-bottom:10px;color:#81ecec}
+.stat p{font-size:38px;font-weight:bold}
+.grid{max-width:1400px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:25px}
+.card{background:rgba(255,255,255,.08);backdrop-filter:blur(15px);padding:30px;border-radius:30px;box-shadow:0 10px 40px #0004;transition:.3s;text-align:center;border:1px solid #ffffff0d}
+.card:hover{transform:translateY(-5px)}
+.icon{font-size:60px;margin-bottom:20px}
+.card h2{font-size:26px;margin-bottom:15px}
+.card p{color:#ccc;margin-bottom:25px;line-height:1.6}
+.card a{display:inline-block;padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:linear-gradient(135deg,#6c5ce7,#00cec9);color:white;transition:.3s}
+.card a:hover{opacity:.9;transform:translateY(-2px)}
+.footer{text-align:center;margin-top:35px;color:#aaa;font-size:13px}
+.message{max-width:1400px;margin:0 auto 20px;padding:15px;border-radius:14px;background:#075985;line-height:1.5;overflow-wrap:anywhere}
+.hidden{display:none}
+@media(max-width:768px){body{padding:15px}.profile{padding:23px}.profile-top{flex-direction:column;text-align:center}.nav a{padding:11px 13px}.header{align-items:flex-start}.stat p{font-size:32px}}
+</style>
+</head>
+
+<body>
+
+<div id="message" class="message">Loading your dashboard...</div>
+
+<header class="header">
+  <div class="logo">👨‍🏫 Faculty Dashboard</div>
+  <nav class="nav">
+    <a href="faculty_profile.html">👤 My Profile</a>
+    <a href="#" id="logoutBtn">🚪 Logout</a>
+  </nav>
+</header>
+
+<section class="profile">
+  <div class="profile-top">
+    <div class="avatar" id="avatar">...</div>
+    <div class="info">
+      <h1 id="facultyName">Loading...</h1>
+      <p>📧 <span id="facultyEmail">—</span></p>
+      <p>🎓 Role: <span id="facultyRole">—</span></p>
+      <p>📦 Borrow Limit: <span id="borrowLimit">5</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stat"><h3>📨 Total Requests</h3><p id="totalRequests">—</p></div>
+  <div class="stat"><h3>📦 Borrowed Items</h3><p id="totalBorrowed">—</p></div>
+  <div class="stat"><h3>✅ Returned Items</h3><p id="totalReturned">—</p></div>
+  <div class="stat"><h3>⏳ Pending Requests</h3><p id="pendingRequests">—</p></div>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <div class="icon">📦</div>
+    <h2>Borrow Item</h2>
+    <p>Request school inventory equipment and materials.</p>
+    <a href="faculty_borrow_item.html">Open</a>
+  </div>
+
+  <div class="card">
+    <div class="icon">📜</div>
+    <h2>Borrow Logs</h2>
+    <p>View your borrowing history, return dates, and item conditions.</p>
+    <a href="faculty_borrow_logs.html">Open</a>
+  </div>
+
+  <div class="card">
+    <div class="icon">👤</div>
+    <h2>Faculty Profile</h2>
+    <p>View and manage your faculty account information.</p>
+    <a href="faculty_profile.html">Open</a>
+  </div>
+
+  <div class="card">
+    <div class="icon">📨</div>
+    <h2>My Requests</h2>
+    <p>Monitor pending, approved, and rejected borrow requests.</p>
+    <a href="faculty_my_requests.html">Open</a>
+  </div>
+</section>
+
+<div class="footer">PTC Institutional Inventory System © 2026</div>
+
+<script type="module">
+import {auth,db} from "./firebase.js";
+
+import {
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  doc,getDoc,collection,getDocs,query,where
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $=id=>document.getElementById(id);
+
+function showMessage(text){
+  $("message").textContent=text;
+  $("message").classList.remove("hidden");
+}
+
+function hideMessage(){
+  $("message").classList.add("hidden");
+}
+
+function setCount(id,value){
+  $(id).textContent=String(value);
+}
+
+async function countUserRecords(collectionName,uid,statusField=null,statusValue=null){
+  const conditions=[where("user_id","==",uid)];
+
+  if(statusField!==null){
+    conditions.push(where(statusField,"==",statusValue));
+  }
+
+  const q=query(collection(db,collectionName),...conditions);
+  const result=await getDocs(q);
+  return result.size;
+}
+
+async function loadDashboard(firebaseUser){
+  const profileRef=doc(db,"users",firebaseUser.uid);
+  const profileSnap=await getDoc(profileRef);
+
+  if(!profileSnap.exists()){
+    throw new Error("Hindi makita ang user profile sa Firestore. Tingnan kung Auth UID ang document ID sa users collection.");
+  }
+
+  const user=profileSnap.data();
+  const role=String(user.role||"").trim().toLowerCase();
+
+  if(role!=="faculty"){
+    throw new Error("Faculty account lamang ang maaaring gumamit ng dashboard na ito.");
+  }
+
+  const name=user.username||user.name||"Faculty User";
+  const email=user.institutional_email||user.email||firebaseUser.email||"—";
+  const limit=Number.isFinite(Number(user.borrow_limit))
+    ? Math.max(0,Number(user.borrow_limit))
+    : 5;
+
+  $("facultyName").textContent=name;
+  $("facultyEmail").textContent=email;
+  $("facultyRole").textContent=user.role||"Faculty";
+  $("borrowLimit").textContent=String(limit);
+
+  const avatar=$("avatar");
+  const photo=user.profile_pic||user.photoURL||user.photo_url||"";
+
+  if(photo){
+    const img=document.createElement("img");
+    img.src=photo;
+    img.alt="Faculty profile picture";
+    img.onerror=()=>{
+      avatar.replaceChildren(document.createTextNode(name.charAt(0).toUpperCase()));
+    };
+    avatar.replaceChildren(img);
+  }else{
+    avatar.textContent=name.charAt(0).toUpperCase();
+  }
+
+  // Each count is limited to the currently signed-in faculty.
+  const [
+    totalRequests,
+    totalBorrowed,
+    totalReturned,
+    pendingRequests
+  ]=await Promise.all([
+    countUserRecords("requests",firebaseUser.uid),
+    countUserRecords("borrow_logs",firebaseUser.uid,"status","borrowed"),
+    countUserRecords("borrow_logs",firebaseUser.uid,"status","returned"),
+    countUserRecords("requests",firebaseUser.uid,"status","pending")
+  ]);
+
+  setCount("totalRequests",totalRequests);
+  setCount("totalBorrowed",totalBorrowed);
+  setCount("totalReturned",totalReturned);
+  setCount("pendingRequests",pendingRequests);
+
+  hideMessage();
+}
+
+$("logoutBtn").addEventListener("click",async event=>{
+  event.preventDefault();
+  try{
+    await signOut(auth);
+    location.href="login.html";
+  }catch(error){
+    showMessage("Hindi matagumpay ang logout: "+error.message);
+  }
+});
+
+onAuthStateChanged(auth,async user=>{
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  try{
+    await loadDashboard(user);
+  }catch(error){
+    console.error("Faculty dashboard error:",error);
+    showMessage(error.message||"Hindi ma-load ang dashboard. Suriin ang Firestore rules at data.");
+  }
+});
+</script>
+
+</body>
+</html>

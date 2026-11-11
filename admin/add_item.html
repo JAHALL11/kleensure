@@ -1,0 +1,677 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#17212c">
+<title>Add Inventory Item | Kleensure</title>
+
+<style>
+:root {
+  --bg: #17212c;
+  --card: #252b31ee;
+  --teal: #00cec9;
+  --green: #00b894;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #17212c, #26384b, #20243a);
+  color: white;
+}
+.glow, .glow2 {
+  position: fixed;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  filter: blur(130px);
+  opacity: .22;
+  pointer-events: none;
+  z-index: 0;
+}
+.glow {
+  background: var(--teal);
+  top: -100px;
+  left: -100px;
+}
+.glow2 {
+  background: #6c5ce7;
+  bottom: -120px;
+  right: -100px;
+}
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+}
+.card {
+  width: 100%;
+  max-width: 560px;
+  padding: 30px;
+  background: var(--card);
+  backdrop-filter: blur(18px);
+  border: 1px solid #ffffff40;
+  border-radius: 25px;
+  box-shadow: 0 12px 40px #0006;
+}
+.clock {
+  text-align: right;
+  color: #eee;
+  font-size: 12px;
+  margin-bottom: 15px;
+}
+.logo {
+  width: 70px;
+  height: 70px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 15px;
+  background: #ffffff20;
+  border: 1px solid #ffffff50;
+  font-size: 35px;
+}
+h1 {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.subtitle {
+  text-align: center;
+  color: #ddd;
+  margin-bottom: 20px;
+}
+.status {
+  padding: 13px;
+  background: #ffffff12;
+  border-radius: 13px;
+  line-height: 1.8;
+  font-size: 13px;
+  margin-bottom: 15px;
+  overflow-wrap: anywhere;
+}
+label {
+  display: block;
+  margin: 13px 0 6px;
+  font-size: 14px;
+  font-weight: bold;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #ffffff80;
+  border-radius: 12px;
+  background: #f5f6f7;
+  color: #222;
+  font-size: 15px;
+}
+textarea {
+  height: 95px;
+  resize: vertical;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--teal);
+}
+input[type="file"] {
+  background: transparent;
+  color: white;
+  border: none;
+  padding: 8px 0;
+}
+#preview {
+  display: none;
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin: 12px auto;
+  border: 3px solid var(--teal);
+}
+button {
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 12px;
+  margin-top: 18px;
+  background: linear-gradient(135deg, var(--green), var(--teal));
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.back {
+  display: block;
+  text-align: center;
+  margin-top: 18px;
+  color: #55efc4;
+  text-decoration: none;
+  font-weight: bold;
+}
+.message {
+  display: none;
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  font-size: 14px;
+}
+.error {
+  display: block;
+  background: #8f2020;
+  color: white;
+}
+.success {
+  display: block;
+  background: #075c49;
+  color: white;
+}
+#charCount {
+  text-align: right;
+  color: #eee;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.note {
+  font-size: 12px;
+  color: #ddd;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+@media(max-width: 500px) {
+  .container { padding: 14px; }
+  .card { padding: 23px 18px; }
+  h1 { font-size: 25px; }
+}
+</style>
+</head>
+
+<body>
+<div class="glow"></div>
+<div class="glow2"></div>
+
+<main class="container">
+<section class="card">
+  <div class="clock" id="clock"></div>
+  <div class="logo" aria-hidden="true">📦</div>
+
+  <h1>Add Inventory Item</h1>
+  <p class="subtitle">Kleensure Inventory Management</p>
+
+  <div class="status">
+    🔐 <span id="authStatus">Checking account...</span><br>
+    📦 Inventory Module<br>
+    ☁️ Firebase Cloud Firestore
+  </div>
+
+  <div id="message" class="message" role="status"
+       aria-live="polite"></div>
+
+  <form id="itemForm">
+    <label for="item_name">Item Name *</label>
+    <input id="item_name" name="item_name" type="text"
+      placeholder="Item name" minlength="2" maxlength="120" required>
+
+    <label for="quantity">Quantity *</label>
+    <input id="quantity" name="quantity" type="number"
+      placeholder="Quantity" min="1" max="1000000"
+      step="1" required>
+
+    <label for="condition_status">Item Condition *</label>
+    <select id="condition_status" name="condition_status" required>
+      <option value="Good">Good</option>
+      <option value="Damaged">Damaged</option>
+      <option value="Maintenance">Maintenance</option>
+      <option value="Missing Parts">Missing Parts</option>
+    </select>
+
+   
+<label for="category">Category *</label>
+<select id="category" name="category" required>
+  <option value="">Select Category</option>
+  <option value="Cleaning Machines">Cleaning Machines</option>
+  <option value="Vacuum Cleaners">Vacuum Cleaners</option>
+  <option value="Carpet Cleaning Equipment">Carpet Cleaning Equipment</option>
+  <option value="Cleaning Chemicals">Cleaning Chemicals</option>
+  <option value="Carpet Shampoo">Carpet Shampoo</option>
+  <option value="Cleaning Tools">Cleaning Tools</option>
+  <option value="Protective Equipment">Protective Equipment</option>
+  <option value="Accessories and Parts">Accessories and Parts</option>
+  <option value="Consumable Supplies">Consumable Supplies</option>
+  <option value="Other">Other</option>
+</select>
+
+
+    <label for="purchase_date">Purchase Date</label>
+    <input id="purchase_date" name="purchase_date" type="date">
+
+    <label for="description">Item Description</label>
+    <textarea id="description" name="description"
+      placeholder="Item description" maxlength="1000"></textarea>
+    <div id="charCount">0 / 1000 characters</div>
+
+    <label for="image">Item Image (Optional)</label>
+    <input id="image" name="image" type="file"
+      accept="image/jpeg,image/png,image/webp">
+    <p class="note">
+      Optional. JPG, PNG, or WEBP, maximum 5 MB.
+      Image will be compressed before saving.
+    </p>
+    <img id="preview" alt="Selected item image preview">
+
+    <button type="submit" id="saveButton" disabled>
+      💾 Save Item
+    </button>
+  </form>
+
+  <a href="dashboard.html" class="back">
+    ← Back to Dashboard
+  </a>
+</section>
+</main>
+
+<script type="module">
+import { initializeApp, getApps }
+  from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCik-MVlxK6cshGy87dXOi10a0_c52cO1w",
+  authDomain: "inventory-4f2b5.firebaseapp.com",
+  projectId: "inventory-4f2b5",
+  storageBucket: "inventory-4f2b5.firebasestorage.app",
+  messagingSenderId: "185805306294",
+  appId: "1:185805306294:web:d674bd3c32b9994fa46917",
+  measurementId: "G-5KCN8KL8ET"
+};
+
+const app = getApps().length
+  ? getApps()[0]
+  : initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const form = document.getElementById("itemForm");
+const imageInput = document.getElementById("image");
+const preview = document.getElementById("preview");
+const description = document.getElementById("description");
+const charCount = document.getElementById("charCount");
+const saveButton = document.getElementById("saveButton");
+const message = document.getElementById("message");
+const authStatus = document.getElementById("authStatus");
+
+let currentUser = null;
+let currentRole = "";
+let authReady = false;
+let selectedImageData = "";
+let isSaving = false;
+let imageProcessing = false;
+
+function showMessage(text, type = "error") {
+  message.textContent = text;
+  message.className = "message " + type;
+}
+
+function normalizeRole(role) {
+  return String(role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function updateSaveButton() {
+  saveButton.disabled =
+    !authReady ||
+    !currentUser ||
+    !["admin", "manager"].includes(currentRole) ||
+    isSaving ||
+    imageProcessing;
+}
+
+function explainError(error) {
+  console.error("Kleensure inventory error:", error);
+
+  const code = error?.code || "";
+
+  if (code.includes("permission-denied")) {
+    return "Firestore denied the save. Check Firestore Rules, the users/{UID} profile, and the account role.";
+  }
+
+  if (code.includes("unauthenticated")) {
+    return "Your login session is invalid. Please sign in again.";
+  }
+
+  if (code.includes("unavailable") ||
+      code.includes("deadline-exceeded")) {
+    return "Firestore is temporarily unavailable. Check your connection and try again.";
+  }
+
+  if (code.includes("resource-exhausted") ||
+      code.includes("invalid-argument")) {
+    return "Firestore rejected the data. Try a smaller image and check the item fields.";
+  }
+
+  return (code ? code + ": " : "") +
+    (error?.message || "Unable to save the item.");
+}
+
+async function getStaffRole(user) {
+  const profileSnapshot = await getDoc(
+    doc(db, "users", user.uid)
+  );
+
+  if (!profileSnapshot.exists()) {
+    throw new Error(
+      "No staff profile was found in users/" + user.uid +
+      ". Ask the administrator to set up this account."
+    );
+  }
+
+  return normalizeRole(profileSnapshot.data().role);
+}
+
+onAuthStateChanged(auth, async user => {
+  authReady = true;
+  currentUser = user;
+  currentRole = "";
+  updateSaveButton();
+
+  if (!user) {
+    authStatus.textContent = "Login required";
+    showMessage("Please log in with an authorized Kleensure staff account.");
+    return;
+  }
+
+  authStatus.textContent = "Verifying staff role...";
+
+  try {
+    currentRole = await getStaffRole(user);
+
+    authStatus.textContent =
+      "Signed in: " + (user.email || user.uid) +
+      " · Role: " + (currentRole || "unassigned");
+
+    if (!["admin", "manager"].includes(currentRole)) {
+      showMessage(
+        "This account cannot add inventory. Admin or Manager access is required."
+      );
+    } else {
+      message.className = "message";
+    }
+  } catch (error) {
+    console.error("Staff verification error:", error);
+    showMessage(error.message || explainError(error));
+    authStatus.textContent = "Unable to verify staff access";
+  }
+
+  updateSaveButton();
+});
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      resolve("");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onerror = () =>
+      reject(new Error("Unable to read the selected image."));
+
+    reader.onload = () => {
+      const image = new Image();
+
+      image.onerror = () =>
+        reject(new Error("Unable to open this image file."));
+
+      image.onload = () => {
+        const maxSide = 300;
+        const scale = Math.min(
+          1,
+          maxSide / Math.max(image.width, image.height)
+        );
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          reject(new Error("Image processing is not supported."));
+          return;
+        }
+
+        context.drawImage(
+          image, 0, 0, canvas.width, canvas.height
+        );
+
+        const dataURL = canvas.toDataURL("image/jpeg", 0.55);
+
+        if (dataURL.length > 700000) {
+          reject(new Error(
+            "The compressed image is still too large. Please choose a smaller image."
+          ));
+          return;
+        }
+
+        resolve(dataURL);
+      };
+
+      image.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+imageInput.addEventListener("change", async () => {
+  const file = imageInput.files?.[0];
+
+  selectedImageData = "";
+  preview.style.display = "none";
+  preview.removeAttribute("src");
+
+  if (!file) {
+    imageProcessing = false;
+    updateSaveButton();
+    return;
+  }
+
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    imageInput.value = "";
+    showMessage("Choose a JPG, PNG, or WEBP image.");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    imageInput.value = "";
+    showMessage("The original image must be 5 MB or smaller.");
+    return;
+  }
+
+  imageProcessing = true;
+  updateSaveButton();
+  showMessage("Processing image...", "success");
+
+  try {
+    selectedImageData = await compressImage(file);
+    preview.src = selectedImageData;
+    preview.style.display = "block";
+    message.className = "message";
+  } catch (error) {
+    imageInput.value = "";
+    selectedImageData = "";
+    showMessage(error.message || "Image processing failed.");
+  } finally {
+    imageProcessing = false;
+    updateSaveButton();
+  }
+});
+
+description.addEventListener("input", () => {
+  charCount.textContent =
+    description.value.length + " / 1000 characters";
+});
+
+function updateClock() {
+  document.getElementById("clock").textContent =
+    new Date().toLocaleString();
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (isSaving) return;
+
+  if (!authReady || !currentUser) {
+    showMessage("Please log in before saving an item.");
+    return;
+  }
+
+  if (!["admin", "manager"].includes(currentRole)) {
+    showMessage("Only Admin and Manager accounts can add inventory.");
+    return;
+  }
+
+  if (imageProcessing) {
+    showMessage("Please wait for image processing to finish.");
+    return;
+  }
+
+  const itemName =
+    document.getElementById("item_name").value.trim();
+
+  const quantity =
+    Number(document.getElementById("quantity").value);
+
+  const category =
+    document.getElementById("category").value;
+
+  const conditionStatus =
+    document.getElementById("condition_status").value;
+
+  if (itemName.length < 2) {
+    showMessage("Item name must contain at least 2 characters.");
+    return;
+  }
+
+  if (!Number.isSafeInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 1000000) {
+    showMessage("Quantity must be a whole number from 1 to 1,000,000.");
+    return;
+  }
+
+  if (!category) {
+    showMessage("Please select a category.");
+    return;
+  }
+
+  if (imageInput.files?.[0] && !selectedImageData) {
+    showMessage("Wait for image processing or remove the selected image.");
+    return;
+  }
+
+  isSaving = true;
+  updateSaveButton();
+  saveButton.textContent = "Saving item...";
+  message.className = "message";
+
+  try {
+    // Re-check the staff profile before attempting the write.
+    const verifiedRole = await getStaffRole(currentUser);
+
+    if (!["admin", "manager"].includes(verifiedRole)) {
+      currentRole = verifiedRole;
+      throw new Error(
+        "Your account does not have permission to add inventory."
+      );
+    }
+
+    const itemData = {
+      item_name: itemName,
+      quantity: quantity,
+      category: category,
+      supplier: document.getElementById("supplier").value.trim(),
+      purchase_date:
+        document.getElementById("purchase_date").value || "",
+      description: description.value.trim(),
+      condition_status: conditionStatus,
+      image: selectedImageData || "",
+      imagePath: "",
+      createdBy: currentUser.uid,
+      createdByEmail: currentUser.email || "",
+      createdAt: serverTimestamp()
+    };
+
+    const documentReference = await addDoc(
+      collection(db, "items"),
+      itemData
+    );
+
+    // Confirm success, then redirect to dashboard.
+    showMessage(
+      "Item saved successfully! Redirecting to dashboard...",
+      "success"
+    );
+
+    form.reset();
+    selectedImageData = "";
+    preview.style.display = "none";
+    preview.removeAttribute("src");
+    charCount.textContent = "0 / 1000 characters";
+
+    setTimeout(() => {
+      window.location.href = "dashboard.html";
+    }, 1200);
+
+  } catch (error) {
+    if (error?.code) {
+      showMessage(explainError(error));
+    } else {
+      console.error("Kleensure save error:", error);
+      showMessage(error.message || "Unable to save the item.");
+    }
+  } finally {
+    isSaving = false;
+    updateSaveButton();
+  }
+});
+</script>
+</body>
+</html>

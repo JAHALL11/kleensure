@@ -1,0 +1,332 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Borrow Logs | PTC</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#07111f,#0f172a,#001f2f);min-height:100vh;padding:30px;color:white}
+.top{max-width:1200px;margin:auto auto 20px}
+.top a{display:inline-block;padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:#ffffff14;color:white;transition:.3s}
+.top a:hover{background:#00cec9;color:#0f172a}
+.card{max-width:1200px;margin:auto;background:#ffffff12;backdrop-filter:blur(15px);padding:30px;border-radius:30px;box-shadow:0 10px 40px #0005;border:1px solid #ffffff10}
+.title{font-size:clamp(27px,4vw,35px);font-weight:bold;margin-bottom:25px}
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:850px}
+th{background:#00b894;padding:15px;text-align:left;white-space:nowrap}
+td{padding:15px;border-bottom:1px solid #ffffff15;vertical-align:middle}
+tbody tr:hover{background:#ffffff0d}
+.borrowed{color:#fdcb6e;font-weight:bold}
+.returned{color:#00ff88;font-weight:bold}
+.pending{color:#ff7675;font-weight:bold}
+.code-badge{display:inline-block;padding:8px 14px;border-radius:20px;background:#6c5ce7;color:white;font-weight:bold;overflow-wrap:anywhere}
+.proof{width:70px;height:70px;object-fit:cover;border-radius:12px;transition:.2s}
+.proof:hover{transform:scale(1.06)}
+.no-proof{color:#aaa;font-size:13px}
+.footer{text-align:center;margin-top:25px;color:#aaa;font-size:13px}
+.notice{display:none;padding:14px 16px;border-radius:12px;margin-bottom:18px;line-height:1.6;overflow-wrap:anywhere}
+.notice.show{display:block}
+.notice.error{background:#ffe2e2;color:#8a1e1e}
+.notice.info{background:#e1f0ff;color:#174778}
+.empty{text-align:center;padding:28px;color:#ccc}
+.small-muted{color:#aaa;font-size:13px;margin-bottom:15px}
+@media(max-width:600px){body{padding:15px}.card{padding:18px;border-radius:22px}.top a{padding:12px 16px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+</style>
+</head>
+
+<body>
+<div class="top">
+  <a id="backLink" href="student_dashboard.html">← Back to Dashboard</a>
+</div>
+
+<main class="card">
+  <div class="title">📜 My Borrow Logs</div>
+
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+  <p id="resultCount" class="small-muted">Loading your borrow records…</p>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Borrow Code</th>
+          <th>Quantity</th>
+          <th>Status</th>
+          <th>Borrow Date</th>
+          <th>Return Date</th>
+          <th>Proof</th>
+        </tr>
+      </thead>
+      <tbody id="logsBody">
+        <tr><td colspan="7" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">PTC Institutional Inventory System © <span id="year"></span></div>
+</main>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  collection, doc, getDoc, getDocs, query, where
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+$("year").textContent = new Date().getFullYear();
+
+function showNotice(message, type = "info") {
+  $("notice").textContent = message;
+  $("notice").className = "notice show " + type;
+}
+
+function hideNotice() {
+  $("notice").textContent = "";
+  $("notice").className = "notice";
+}
+
+function makeCell(value) {
+  const td = document.createElement("td");
+  td.textContent = value == null || value === "" ? "—" : String(value);
+  return td;
+}
+
+function getDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDate(value) {
+  const date = getDate(value);
+  return date ? date.toLocaleString() : "—";
+}
+
+function getUserId(log) {
+  return String(log.user_id ?? log.userId ?? log.uid ?? "");
+}
+
+function getItemId(log) {
+  return String(log.item_id ?? log.itemId ?? "");
+}
+
+function getItemName(log, itemMap) {
+  const directName = log.item_name || log.itemName;
+  if (directName) return directName;
+
+  const item = itemMap.get(getItemId(log));
+  return item?.item_name || item?.itemName || item?.name || "Unknown item";
+}
+
+function getStatus(log) {
+  return String(log.status || "unknown").trim().toLowerCase();
+}
+
+function getQuantity(log) {
+  return log.quantity ?? log.qty ?? "—";
+}
+
+function getBorrowCode(log) {
+  return log.borrow_code || log.borrowCode || "Not assigned";
+}
+
+function getBorrowProof(log) {
+  return log.proof_borrow || log.proofBorrow || "";
+}
+
+function renderLogs(logs, itemMap) {
+  const tbody = $("logsBody");
+  tbody.replaceChildren();
+
+  $("resultCount").textContent =
+    `${logs.length} borrow record(s) found`;
+
+  if (!logs.length) {
+    const row = document.createElement("tr");
+    const cell = makeCell("Wala ka pang borrow records.");
+    cell.colSpan = 7;
+    cell.className = "empty";
+    row.appendChild(cell);
+    tbody.appendChild(row);
+    return;
+  }
+
+  logs.forEach(log => {
+    const row = document.createElement("tr");
+
+    row.appendChild(makeCell("📦 " + getItemName(log, itemMap)));
+
+    const codeCell = document.createElement("td");
+    const badge = document.createElement("span");
+    badge.className = "code-badge";
+    badge.textContent = getBorrowCode(log);
+    codeCell.appendChild(badge);
+    row.appendChild(codeCell);
+
+    row.appendChild(makeCell(getQuantity(log)));
+
+    const statusCell = document.createElement("td");
+    const status = getStatus(log);
+    const statusLabel = document.createElement("span");
+
+    statusLabel.className = ["borrowed", "returned"].includes(status)
+      ? status
+      : "pending";
+
+    statusLabel.textContent =
+      status === "borrowed" ? "Borrowed" :
+      status === "returned" ? "Returned" :
+      status.charAt(0).toUpperCase() + status.slice(1);
+
+    statusCell.appendChild(statusLabel);
+    row.appendChild(statusCell);
+
+    row.appendChild(makeCell(
+      formatDate(log.date_borrowed || log.dateBorrowed || log.borrow_date)
+    ));
+
+    const returnCell = document.createElement("td");
+    const returnDate = log.date_returned || log.dateReturned;
+
+    if (returnDate) {
+      returnCell.textContent = formatDate(returnDate);
+    } else {
+      const pending = document.createElement("span");
+      pending.className = "pending";
+      pending.textContent = "Not Yet Returned";
+      returnCell.appendChild(pending);
+    }
+
+    row.appendChild(returnCell);
+
+    const proofCell = document.createElement("td");
+    const proofUrl = getBorrowProof(log);
+
+    if (proofUrl) {
+      const link = document.createElement("a");
+      link.href = proofUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.setAttribute("aria-label", "View borrowing proof");
+
+      const image = document.createElement("img");
+      image.src = proofUrl;
+      image.alt = "Borrow proof";
+      image.className = "proof";
+      image.loading = "lazy";
+
+      image.onerror = () => {
+        image.remove();
+        link.textContent = "Proof unavailable";
+        link.className = "no-proof";
+      };
+
+      link.appendChild(image);
+      proofCell.appendChild(link);
+    } else {
+      const noProof = document.createElement("span");
+      noProof.className = "no-proof";
+      noProof.textContent = "No Proof";
+      proofCell.appendChild(noProof);
+    }
+
+    row.appendChild(proofCell);
+    tbody.appendChild(row);
+  });
+}
+
+async function loadBorrowLogs(user) {
+  const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+  if (!profileSnap.exists()) {
+    showNotice("Hindi makita ang user profile mo. Mag-login ulit o makipag-ugnayan sa administrator.", "error");
+    $("logsBody").replaceChildren();
+    return;
+  }
+
+  const role = String(profileSnap.data().role || "").toLowerCase();
+
+  // Match the original PHP behavior: show the signed-in user's own records.
+  $("backLink").href = role === "faculty"
+    ? "faculty_dashboard.html"
+    : "student_dashboard.html";
+
+  const logsQuery = query(
+    collection(db, "borrow_logs"),
+    where("user_id", "==", user.uid)
+  );
+
+  const logsSnap = await getDocs(logsQuery);
+
+  const logs = logsSnap.docs.map(d => ({
+    id: d.id,
+    ...d.data()
+  }));
+
+  logs.sort((a, b) => {
+    const aId = Number(a.log_id ?? a.logId);
+    const bId = Number(b.log_id ?? b.logId);
+
+    if (Number.isFinite(aId) && Number.isFinite(bId)) {
+      return bId - aId;
+    }
+
+    const aDate = getDate(a.date_borrowed || a.dateBorrowed)?.getTime() || 0;
+    const bDate = getDate(b.date_borrowed || b.dateBorrowed)?.getTime() || 0;
+    return bDate - aDate;
+  });
+
+  // Fetch items only for the item IDs referenced by this user's logs.
+  const itemIds = [...new Set(logs.map(getItemId).filter(Boolean))];
+  const itemMap = new Map();
+
+  await Promise.all(itemIds.map(async itemId => {
+    const itemSnap = await getDoc(doc(db, "items", itemId));
+    if (itemSnap.exists()) itemMap.set(itemId, itemSnap.data());
+  }));
+
+  renderLogs(logs, itemMap);
+}
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  try {
+    hideNotice();
+    await loadBorrowLogs(user);
+  } catch (error) {
+    console.error("Borrow logs error:", error);
+    showNotice(
+      "Hindi ma-load ang borrow logs. Suriin ang Firestore Rules at data permissions. " +
+      (error.code || "") + " " + (error.message || ""),
+      "error"
+    );
+
+    $("resultCount").textContent = "Unable to load borrow records.";
+    $("logsBody").replaceChildren();
+    const row = document.createElement("tr");
+    const cell = makeCell("Unable to load borrow records.");
+    cell.colSpan = 7;
+    cell.className = "empty";
+    row.appendChild(cell);
+    $("logsBody").appendChild(row);
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07111f">
+<title>Register | PTC Institutional Inventory</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{min-height:100vh;display:flex;justify-content:center;align-items:center;padding:24px;color:#fff;background:linear-gradient(135deg,#07111f,#0f172a,#001f2f)}
+.container{width:100%;max-width:520px}
+.card{padding:38px;border-radius:30px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(20px);box-shadow:0 15px 60px #0006}
+.icon{font-size:45px;margin-bottom:14px}
+h1{font-size:32px;margin-bottom:10px}
+.subtitle{color:#cbd5e1;line-height:1.7;margin-bottom:28px}
+.field{margin-bottom:19px}
+label{display:block;margin-bottom:9px;font-size:14px;font-weight:bold;color:#dfe6e9}
+input,select{width:100%;padding:16px;border:1px solid #ffffff20;border-radius:15px;font-size:15px;outline:none;background:#fff;color:#0f172a}
+input:focus,select:focus{border-color:#00cec9;box-shadow:0 0 0 3px #00cec926}
+.hint{color:#b8c7d9;font-size:12px;margin-top:8px;line-height:1.6}
+.password-wrap{position:relative}
+.password-wrap input{padding-right:75px}
+.toggle-password{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:0;color:#334155;cursor:pointer;font-weight:bold;padding:8px}
+.borrow-info{background:#81ecec19;border:1px solid #81ecec33;padding:14px;border-radius:14px;margin:4px 0 20px;color:#b8ffff;font-size:14px;line-height:1.6}
+.message{display:none;padding:13px;border-radius:12px;margin-bottom:18px;line-height:1.5;overflow-wrap:anywhere;font-size:14px}
+.message.show{display:block}
+.message.error{background:#ff6b6b26;color:#ffb4b4}
+.message.success{background:#55efc426;color:#9fffe0}
+.message.info{background:#81ecec20;color:#b8ffff}
+.submit-btn{width:100%;padding:17px;border:0;border-radius:16px;font-size:17px;font-weight:bold;cursor:pointer;color:#0f172a;background:linear-gradient(135deg,#6c5ce7,#00cec9)}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-link{text-align:center;margin-top:23px;color:#cbd5e1;line-height:1.8}
+.login-link a{color:#81ecec;font-weight:bold;text-decoration:none}
+.footer{text-align:center;margin-top:20px;color:#94a3b8;font-size:12px}
+@media(max-width:480px){.card{padding:27px 20px;border-radius:24px}h1{font-size:28px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="container">
+<section class="card">
+  <div class="icon" aria-hidden="true">🎓</div>
+  <h1>Create Account</h1>
+  <p class="subtitle">
+    Register for the PTC Institutional Inventory System using your official institutional email.
+    New accounts require administrator approval before inventory access.
+  </p>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+
+  <form id="registerForm">
+    <div class="field">
+      <label for="name">Full Name</label>
+      <input id="name" type="text" maxlength="100" autocomplete="name"
+        placeholder="Enter your full name" required>
+    </div>
+
+    <div class="field">
+      <label for="email">Institutional Email</label>
+      <input id="email" type="email" maxlength="254" autocomplete="email"
+        placeholder="yourname@paterostechnologicalcollege.edu.ph"
+        required>
+      <p class="hint">Only @paterostechnologicalcollege.edu.ph email addresses are accepted.</p>
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="password-wrap">
+        <input id="password" type="password" minlength="8"
+          autocomplete="new-password" placeholder="Create a password" required>
+        <button class="toggle-password" type="button" data-target="password">Show</button>
+      </div>
+      <p class="hint">Use at least 8 characters.</p>
+    </div>
+
+    <div class="field">
+      <label for="confirmPassword">Confirm Password</label>
+      <div class="password-wrap">
+        <input id="confirmPassword" type="password" minlength="8"
+          autocomplete="new-password" placeholder="Re-enter your password" required>
+        <button class="toggle-password" type="button" data-target="confirmPassword">Show</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="role">Account Role</label>
+      <select id="role" required>
+        <option value="">Select your role</option>
+        <option value="faculty">Faculty</option>
+        <option value="lead_man">Lead Man</option>
+      </select>
+      <p class="hint">
+        Your selected role will remain pending until an administrator approves your account.
+      </p>
+    </div>
+
+    <div class="borrow-info" id="borrowInfo">
+      Select your role to see the borrowing limit.
+    </div>
+
+    <button class="submit-btn" id="submitButton" type="submit">
+      Create Account →
+    </button>
+  </form>
+
+  <div class="login-link">
+    Already have an account?<br>
+    <a href="login.html">Sign in here</a>
+  </div>
+  <div class="footer">PTC Institutional Inventory System © 2026</div>
+</section>
+</main>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  doc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const form = document.getElementById("registerForm");
+const message = document.getElementById("message");
+const button = document.getElementById("submitButton");
+const roleSelect = document.getElementById("role");
+const borrowInfo = document.getElementById("borrowInfo");
+
+const ALLOWED_DOMAIN = "@paterostechnologicalcollege.edu.ph";
+let submitting = false;
+
+function showMessage(text, type = "error") {
+  message.textContent = text;
+  message.className = "message show " + type;
+}
+
+function getBorrowLimit(role) {
+  return role === "faculty" ? 5 : 2;
+}
+
+roleSelect.addEventListener("change", () => {
+  const role = roleSelect.value;
+
+  borrowInfo.textContent = role
+    ? `Borrowing limit after approval: ${getBorrowLimit(role)} items for ${role === "lead_man" ? "Lead Man" : "Faculty"}.`
+    : "Select your role to see the borrowing limit.";
+});
+
+document.querySelectorAll(".toggle-password").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const input = document.getElementById(btn.dataset.target);
+    input.type = input.type === "password" ? "text" : "password";
+    btn.textContent = input.type === "password" ? "Show" : "Hide";
+  });
+});
+
+function friendlyError(error) {
+  const code = error?.code || "";
+
+  const messages = {
+    "auth/email-already-in-use":
+      "This email already has a Firebase Authentication account. Please sign in instead.",
+    "auth/invalid-email":
+      "Please enter a valid email address.",
+    "auth/weak-password":
+      "Your password is too weak. Use at least 8 characters.",
+    "auth/network-request-failed":
+      "Network error. Check your internet connection.",
+    "auth/operation-not-allowed":
+      "Email/password sign-in is disabled. Enable it in Firebase Authentication → Sign-in method.",
+    "auth/invalid-api-key":
+      "The Firebase API key is invalid. Check firebase.js.",
+    "permission-denied":
+      "Firestore denied the profile write. Verify the published Security Rules.",
+    "unavailable":
+      "Firebase is temporarily unavailable. Try again."
+  };
+
+  return messages[code] ||
+    `${code ? code + ": " : ""}${error?.message || "Registration failed."}`;
+}
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (submitting) return;
+
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+  const role = roleSelect.value;
+
+  if (name.length < 2) {
+    showMessage("Please enter your full name.");
+    return;
+  }
+
+  if (name.length > 100) {
+    showMessage("Your name must not exceed 100 characters.");
+    return;
+  }
+
+  if (!email.endsWith(ALLOWED_DOMAIN)) {
+    showMessage("Use your official institutional email: " + ALLOWED_DOMAIN);
+    return;
+  }
+
+  if (password.length < 8) {
+    showMessage("Password must contain at least 8 characters.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showMessage("Passwords do not match.");
+    return;
+  }
+
+  if (!["faculty", "lead_man"].includes(role)) {
+    showMessage("Select a valid role.");
+    return;
+  }
+
+  submitting = true;
+  button.disabled = true;
+  button.textContent = "Creating Account...";
+
+  let createdUser = null;
+  let profileSaved = false;
+
+  try {
+    const credential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    createdUser = credential.user;
+
+    await updateProfile(createdUser, {
+      displayName: name
+    });
+
+    // Automatic Firestore profile creation.
+    await setDoc(doc(db, "users", createdUser.uid), {
+      uid: createdUser.uid,
+      username: name,
+      name: name,
+      email: email,
+      institutional_email: email,
+      role: role,
+      account_status: "pending",
+      approval_status: "pending",
+      borrow_limit: getBorrowLimit(role),
+      current_borrowed: 0,
+      damage_strikes: 0,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
+    });
+
+    profileSaved = true;
+
+    await signOut(auth);
+
+    showMessage(
+      "Registration submitted successfully! Your Firestore profile was created automatically. Your account is pending administrator approval.",
+      "success"
+    );
+
+    form.reset();
+    borrowInfo.textContent = "Select your role to see the borrowing limit.";
+
+    window.setTimeout(() => {
+      window.location.href = "login.html";
+    }, 2200);
+
+  } catch (error) {
+    console.error("Registration failed:", error);
+
+    if (createdUser && !profileSaved) {
+      showMessage(
+        friendlyError(error) +
+        " Your Authentication account may already exist, but its Firestore profile was not saved. Do not repeatedly register. Contact the administrator to repair the incomplete account."
+      );
+    } else if (profileSaved) {
+      showMessage(
+        "Your Firestore profile was created successfully. If you were not signed out automatically, please sign out manually. Your account is pending administrator approval.",
+        "success"
+      );
+    } else {
+      showMessage(friendlyError(error));
+    }
+
+  } finally {
+    submitting = false;
+    button.disabled = false;
+    button.textContent = "Create Account →";
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,586 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Profile | PTC Inventory</title>
+
+<link rel="stylesheet"
+ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{
+  min-height:100vh;display:flex;justify-content:center;align-items:flex-start;
+  overflow-x:hidden;background:#0f172a;position:relative;padding:40px 0
+}
+.bg{
+  position:fixed;inset:0;
+  background:linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.7)),
+  url('https://images.unsplash.com/photo-1497366754035-f200968a6e72')
+  no-repeat center center/cover;
+  filter:blur(5px);transform:scale(1.1);z-index:-3
+}
+.particle{
+  position:fixed;border-radius:50%;background:rgba(255,255,255,.15);
+  animation:float 12s infinite linear;pointer-events:none;z-index:-1
+}
+.card{
+  width:95%;max-width:600px;padding:40px;border-radius:30px;
+  background:rgba(255,255,255,.1);backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 15px 40px rgba(0,0,0,.35);
+  position:relative;overflow:hidden;animation:popUp .7s ease
+}
+.header{text-align:center;margin-bottom:30px}
+.header h1{font-size:36px;color:white;margin-bottom:10px}
+.subtitle{color:#ddd;line-height:1.5}
+.avatar-container{text-align:center;position:relative;margin-bottom:25px}
+.avatar{
+  width:155px;height:155px;border-radius:50%;object-fit:cover;
+  border:6px solid white;box-shadow:0 8px 25px #0005;transition:.3s
+}
+.avatar:hover{transform:scale(1.04) rotate(2deg)}
+.role-badge{
+  display:table;margin:12px auto 0;background:#00ff88;color:#10251b;
+  padding:7px 14px;border-radius:20px;font-weight:bold;font-size:12px
+}
+.form-group{margin-top:20px}
+.form-group label{display:block;margin-bottom:9px;color:white;font-weight:bold}
+.input-box{position:relative}
+.input-box i{
+  position:absolute;top:50%;left:15px;transform:translateY(-50%);color:#00a99d
+}
+.input-box input{
+  width:100%;padding:15px 15px 15px 45px;border:1px solid transparent;
+  border-radius:14px;background:rgba(255,255,255,.94);font-size:15px
+}
+.input-box input:focus{
+  outline:none;border-color:#00cec9;box-shadow:0 0 16px #00cec955
+}
+.password-wrap{position:relative}
+.password-wrap input{padding-right:48px}
+.toggle-password{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  border:0;background:transparent;color:#334155;cursor:pointer;padding:8px
+}
+.file-upload{
+  margin-top:25px;padding:20px;border:2px dashed #ffffff55;
+  border-radius:18px;text-align:center;color:white;transition:.3s
+}
+.file-upload:hover{background:#ffffff12}
+.file-upload input{max-width:100%;margin-top:15px;color:white}
+.hint{font-size:12px;color:#ddd;line-height:1.6;margin-top:10px}
+.progress-section{margin-top:28px}
+.progress-title{color:white;display:flex;justify-content:space-between;gap:10px}
+.progress-bar{
+  width:100%;height:17px;background:#ffffff26;border-radius:20px;
+  overflow:hidden;margin-top:10px
+}
+.progress-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#00ff88,#00cec9);
+  transition:width .4s ease
+}
+.info{
+  margin-top:27px;padding:19px;border-radius:18px;
+  background:#ffffff12;color:#eee;font-size:14px;line-height:1.8;
+  overflow-wrap:anywhere
+}
+.info p{margin:5px 0}
+button.save{
+  width:100%;padding:17px;border:0;border-radius:16px;
+  background:linear-gradient(135deg,#00b894,#00cec9);color:white;
+  font-size:17px;font-weight:bold;cursor:pointer;margin-top:28px;transition:.25s
+}
+button.save:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 10px 25px #0005}
+button.save:disabled{opacity:.6;cursor:not-allowed}
+.back{
+  display:inline-block;margin-top:24px;color:#55efc4;
+  text-decoration:none;font-weight:bold
+}
+.back:hover{text-decoration:underline}
+.message{
+  display:none;margin-bottom:18px;padding:14px;border-radius:12px;
+  line-height:1.6;font-size:13px;overflow-wrap:anywhere
+}
+.message.show{display:block}
+.message.error{background:#ffe7e7;color:#922727}
+.message.success{background:#ddffed;color:#11643e}
+.message.info{background:#e4efff;color:#234a87}
+.clock{
+  position:absolute;top:20px;right:22px;color:#fff;font-size:12px;
+  opacity:.85
+}
+@keyframes popUp{
+  from{opacity:0;transform:translateY(35px) scale(.96)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes float{
+  0%{transform:translateY(100vh) translateX(0)}
+  100%{transform:translateY(-120vh) translateX(50px)}
+}
+@media(max-width:700px){
+  body{padding:20px 0}
+  .card{padding:25px 20px;border-radius:23px}
+  .header h1{font-size:29px}
+  .avatar{width:130px;height:130px}
+  .clock{position:static;text-align:right;margin-bottom:14px}
+}
+</style>
+</head>
+
+<body>
+<div class="bg"></div>
+<div class="particle" style="width:15px;height:15px;left:10%;animation-duration:12s"></div>
+<div class="particle" style="width:25px;height:25px;left:70%;animation-duration:16s"></div>
+<div class="particle" style="width:18px;height:18px;left:40%;animation-duration:14s"></div>
+
+<main class="card">
+  <div class="clock" id="clock"></div>
+
+  <header class="header">
+    <h1>👤 Edit Profile</h1>
+    <p class="subtitle">Manage your account information and profile picture</p>
+  </header>
+
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+
+  <div class="avatar-container">
+    <img id="previewImage" class="avatar"
+      src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+      alt="Profile picture">
+    <div id="roleBadge" class="role-badge">Loading role…</div>
+  </div>
+
+  <form id="profileForm">
+    <div class="form-group">
+      <label for="username">👤 Username / Display Name</label>
+      <div class="input-box">
+        <i class="fa fa-user"></i>
+        <input id="username" type="text" maxlength="80"
+          placeholder="Enter your display name" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="email">📧 Email Address</label>
+      <div class="input-box">
+        <i class="fa fa-envelope"></i>
+        <input id="email" type="email" maxlength="254"
+          placeholder="name@example.com" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="newPassword">🔒 New Password</label>
+      <div class="input-box password-wrap">
+        <i class="fa fa-lock"></i>
+        <input id="newPassword" type="password" minlength="6"
+          autocomplete="new-password"
+          placeholder="Leave blank to keep current password">
+        <button type="button" class="toggle-password"
+          id="togglePassword" aria-label="Show or hide password">
+          <i class="fa fa-eye"></i>
+        </button>
+      </div>
+      <p class="hint">Firebase requires a minimum of 6 characters by default. Your current password will not be changed if this field is blank.</p>
+    </div>
+
+    <div class="file-upload">
+      <div style="font-size:27px">📸</div>
+      <strong>Upload New Profile Picture</strong>
+      <input id="imageInput" type="file"
+        accept=".jpg,.jpeg,.png,.webp,.jfif,image/jpeg,image/png,image/webp">
+      <p class="hint">JPG, PNG or WEBP. The image will be resized before saving.</p>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-title">
+        <span>🔥 Profile Completion</span>
+        <strong id="completionText">0%</strong>
+      </div>
+      <div class="progress-bar">
+        <div id="completionBar" class="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="info">
+      <p>🟢 Account Status: <b id="accountStatus">Checking…</b></p>
+      <p>👤 Role: <b id="accountRole">Checking…</b></p>
+      <p>📧 Signed-in email: <b id="currentEmail">—</b></p>
+      <p>🕒 Current time: <b id="lastSeen">—</b></p>
+    </div>
+
+    <button class="save" id="saveButton" type="submit">
+      💾 Save Changes
+    </button>
+  </form>
+
+  <a href="profile.html" class="back">← Back to Profile</a>
+</main>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+
+import {
+  onAuthStateChanged,
+  updateProfile,
+  updateEmail,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+const defaultAvatar =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+let currentUser = null;
+let currentProfile = null;
+let currentPhoto = "";
+let selectedPhoto = null;
+let saving = false;
+
+function normalizeRole(role) {
+  return String(role || "lead man")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+}
+
+function displayRole(role) {
+  const normalized = normalizeRole(role);
+
+  if (["admin", "administrator", "super administrator"].includes(normalized)) {
+    return "Admin";
+  }
+
+  if (["manager", "officer", "teacher", "faculty", "staff"].includes(normalized)) {
+    return "Manager / Officer";
+  }
+
+  if (normalized === "student" || normalized === "lead man") {
+    return "Lead Man";
+  }
+
+  return role || "Unassigned";
+}
+
+function message(text, type = "info") {
+  $("message").textContent = text;
+  $("message").className = "message show " + type;
+}
+
+function updateClock() {
+  const now = new Date();
+  $("clock").textContent = now.toLocaleString();
+  $("lastSeen").textContent = now.toLocaleString();
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
+function updateCompletion() {
+  const fields = [
+    $("username").value.trim(),
+    $("email").value.trim(),
+    currentPhoto
+  ];
+
+  const completed = fields.filter(Boolean).length;
+  const percent = Math.round(completed / fields.length * 100);
+
+  $("completionText").textContent = percent + "%";
+  $("completionBar").style.width = percent + "%";
+}
+
+function showPhoto(src) {
+  $("previewImage").src = src || defaultAvatar;
+}
+
+$("togglePassword").addEventListener("click", () => {
+  const input = $("newPassword");
+  const icon = $("togglePassword").querySelector("i");
+  const reveal = input.type === "password";
+
+  input.type = reveal ? "text" : "password";
+  icon.className = reveal ? "fa fa-eye-slash" : "fa fa-eye";
+});
+
+async function compressPhoto(file) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  const allowed = ["jpg", "jpeg", "png", "webp", "jfif"];
+
+  if (!allowed.includes(ext) || !file.type.startsWith("image/")) {
+    throw new Error("Please choose a JPG, JPEG, PNG or WEBP image.");
+  }
+
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error("Image is too large. Maximum upload size is 8 MB.");
+  }
+
+  const url = URL.createObjectURL(file);
+
+  try {
+    const img = new Image();
+    img.src = url;
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error("Could not read this image."));
+    });
+
+    const max = 480;
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image processing is unavailable.");
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.76);
+
+    if (dataUrl.length > 250000) {
+      throw new Error("Compressed image is still too large. Choose a smaller picture.");
+    }
+
+    return dataUrl;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+$("imageInput").addEventListener("change", async event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  try {
+    message("Preparing your profile picture…", "info");
+    selectedPhoto = await compressPhoto(file);
+    showPhoto(selectedPhoto);
+    updateCompletion();
+    message("Profile picture ready. Save to apply your changes.", "success");
+  } catch (error) {
+    selectedPhoto = null;
+    event.target.value = "";
+    showPhoto(currentPhoto);
+    message(error.message || "Unable to process image.", "error");
+  }
+});
+
+$("username").addEventListener("input", updateCompletion);
+$("email").addEventListener("input", updateCompletion);
+
+async function loadProfile(user) {
+  currentUser = user;
+
+  const profileRef = doc(db, "users", user.uid);
+  const snap = await getDoc(profileRef);
+
+  if (!snap.exists()) {
+    throw new Error(
+      "Your Firestore users/" + user.uid +
+      " profile does not exist. Ask the administrator to create it."
+    );
+  }
+
+  currentProfile = snap.data();
+
+  $("username").value =
+    currentProfile.username ||
+    currentProfile.displayName ||
+    currentProfile.fullName ||
+    currentProfile.name ||
+    user.displayName ||
+    "";
+
+  $("email").value = user.email || currentProfile.email || "";
+
+  currentPhoto =
+    currentProfile.profile_pic ||
+    currentProfile.profilePic ||
+    user.photoURL ||
+    "";
+
+  showPhoto(currentPhoto);
+
+  const role = displayRole(currentProfile.role);
+
+  $("roleBadge").textContent = "👤 " + role;
+  $("accountRole").textContent = role;
+  $("currentEmail").textContent = user.email || "No email";
+  $("accountStatus").textContent = user.emailVerified
+    ? "Active · Email verified"
+    : "Active · Email not verified";
+
+  updateCompletion();
+}
+
+$("profileForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (!currentUser || !currentProfile || saving) return;
+
+  const username = $("username").value.trim();
+  const email = $("email").value.trim();
+  const newPassword = $("newPassword").value;
+
+  if (username.length < 2) {
+    message("Username must contain at least 2 characters.", "error");
+    return;
+  }
+
+  if (!email || !$("email").checkValidity()) {
+    message("Please enter a valid email address.", "error");
+    return;
+  }
+
+  if (newPassword && newPassword.length < 6) {
+    message("New password must be at least 6 characters.", "error");
+    return;
+  }
+
+  saving = true;
+  $("saveButton").disabled = true;
+  $("saveButton").textContent = "Saving changes…";
+
+  try {
+    const emailChanged = email !== (currentUser.email || "");
+    const passwordChanged = Boolean(newPassword);
+    const profileRef = doc(db, "users", currentUser.uid);
+
+    /*
+      Sensitive Firebase Auth changes may require reauthentication.
+      If they fail, the page will show the error instead of claiming success.
+    */
+    if (emailChanged || passwordChanged) {
+      const provider = currentUser.providerData.find(
+        item => item.providerId === "password"
+      );
+
+      if (provider) {
+        const currentPassword = window.prompt(
+          "For security, enter your CURRENT password to confirm email/password changes:"
+        );
+
+        if (!currentPassword) {
+          throw new Error("Credential verification cancelled. No changes saved.");
+        }
+
+        const credential = EmailAuthProvider.credential(
+          currentUser.email,
+          currentPassword
+        );
+
+        await reauthenticateWithCredential(currentUser, credential);
+      } else {
+        throw new Error(
+          "This account does not use email/password sign-in. Please use your sign-in provider or contact the administrator to change sensitive account credentials."
+        );
+      }
+    }
+
+    // Update Firebase Authentication email/password.
+    // These operations can require recent login or email verification.
+    if (emailChanged) {
+      await updateEmail(currentUser, email);
+    }
+
+    if (passwordChanged) {
+      await updatePassword(currentUser, newPassword);
+    }
+
+    const photoToSave = selectedPhoto ?? currentPhoto;
+
+    await updateProfile(currentUser, {
+      displayName: username,
+      photoURL: photoToSave.startsWith("http") ? photoToSave : null
+    });
+
+    /*
+      Keep the role and other protected profile fields unchanged.
+      This page updates only the user's editable profile fields.
+    */
+    await updateDoc(profileRef, {
+      username,
+      displayName: username,
+      email,
+      profile_pic: photoToSave,
+      updatedAt: serverTimestamp()
+    });
+
+    currentPhoto = photoToSave;
+    selectedPhoto = null;
+    $("newPassword").value = "";
+    $("imageInput").value = "";
+
+    $("currentEmail").textContent = currentUser.email || email;
+    $("accountStatus").textContent = currentUser.emailVerified
+      ? "Active · Email verified"
+      : "Active · Email not verified";
+
+    updateCompletion();
+    message("Profile updated successfully.", "success");
+  } catch (error) {
+    console.error("Profile update error:", error);
+
+    let explanation = error.message || "Unknown error.";
+
+    if (error.code === "auth/requires-recent-login") {
+      explanation = "For security, sign out and sign in again, then retry the change.";
+    } else if (error.code === "auth/email-already-in-use") {
+      explanation = "This email is already used by another account.";
+    } else if (error.code === "auth/invalid-email") {
+      explanation = "The email address is invalid.";
+    } else if (error.code === "auth/weak-password") {
+      explanation = "Choose a stronger password with at least 6 characters.";
+    } else if (error.code === "auth/operation-not-allowed") {
+      explanation = "This operation is disabled in Firebase Authentication settings.";
+    } else if (error.code === "permission-denied") {
+      explanation = "Firestore Rules denied the profile update. Check the users/{uid} update rule.";
+    }
+
+    message("Could not complete profile update: " + explanation, "error");
+  } finally {
+    saving = false;
+    $("saveButton").disabled = false;
+    $("saveButton").textContent = "💾 Save Changes";
+  }
+});
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  try {
+    await loadProfile(user);
+  } catch (error) {
+    console.error("Profile load failed:", error);
+    message(
+      "Unable to load profile. " + (error.message || error.code || ""),
+      "error"
+    );
+    $("saveButton").disabled = true;
+  }
+});
+</script>
+</body>
+</html>

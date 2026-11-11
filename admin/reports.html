@@ -1,0 +1,985 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10251d">
+  <title>Kleensure | Advanced Reports</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f4f7f5;
+      --surface: #fff;
+      --ink: #17251e;
+      --muted: #728077;
+      --green: #176b46;
+      --green-light: #e5f4eb;
+      --border: #e2e9e4;
+      --red: #c63d3d;
+      --amber: #a96a05;
+      --shadow: 0 8px 28px rgba(20, 45, 31, .06);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 1500px; margin: auto; padding: 24px; }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .logo {
+      width: 48px; height: 48px; border-radius: 15px;
+      display: grid; place-items: center; color: white;
+      background: var(--green); font-weight: 800; font-size: 19px;
+    }
+    h1 { margin: 0; font-size: clamp(23px, 3vw, 32px); letter-spacing: -1px; }
+    .subtitle { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .actions { display: flex; gap: 9px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
+      background: white; color: var(--ink); font-size: 13px; font-weight: 700;
+    }
+    .btn.primary { background: var(--green); color: white; border-color: var(--green); }
+    .btn:hover { filter: brightness(.97); }
+
+    .notice {
+      display: none; padding: 13px 15px; margin-bottom: 18px; border-radius: 12px;
+      font-size: 13px; line-height: 1.6;
+    }
+    .notice.show { display: block; }
+    .notice.error { background: #fff0ef; color: #9f2828; }
+    .notice.info { background: #eaf3ff; color: #245b93; }
+    .notice.success { background: #e8f6ed; color: #216b43; }
+
+    .section-head {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; flex-wrap: wrap; margin: 27px 0 14px;
+    }
+    .section-head h2 { margin: 0; font-size: 18px; letter-spacing: -.4px; }
+    .section-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+
+    .grid { display: grid; gap: 15px; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 17px; padding: 19px; box-shadow: var(--shadow); min-width: 0;
+    }
+    .stat-label { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .stat-value { font-size: clamp(25px, 3vw, 34px); font-weight: 800; margin: 12px 0 7px; letter-spacing: -1.2px; overflow-wrap: anywhere; }
+    .stat-note { color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .stat-icon {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: var(--green-light); color: var(--green);
+      display: grid; place-items: center; font-weight: 800; margin-bottom: 13px;
+    }
+    .stat-icon.warn { background: #fff2d8; color: var(--amber); }
+    .stat-icon.danger { background: #ffebeb; color: var(--red); }
+
+    .charts { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+    .chart-card h3 { margin: 0 0 5px; font-size: 14px; }
+    .chart-card p { margin: 0 0 18px; color: var(--muted); font-size: 12px; }
+    .chart-wrap { position: relative; height: 275px; }
+
+    .toolbar {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;
+    }
+    .toolbar input, .toolbar select {
+      background: white; border: 1px solid var(--border); border-radius: 10px;
+      padding: 11px 12px; min-width: 140px; max-width: 100%; outline-color: var(--green);
+    }
+    .toolbar input { flex: 1; min-width: 200px; }
+
+    .table-card { padding: 0; overflow: hidden; }
+    .table-top {
+      padding: 17px 19px; display: flex; justify-content: space-between;
+      align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border);
+    }
+    .table-top h3 { margin: 0; font-size: 14px; }
+    .table-top span { color: var(--muted); font-size: 12px; }
+    .table-scroll { overflow-x: auto; width: 100%; }
+    table { width: 100%; border-collapse: collapse; min-width: 850px; }
+    th, td {
+      padding: 13px 16px; border-bottom: 1px solid #edf1ee;
+      text-align: left; vertical-align: top; font-size: 12px;
+    }
+    th {
+      color: var(--muted); font-size: 10px; text-transform: uppercase;
+      letter-spacing: .6px; background: #f9fbf9; white-space: nowrap;
+    }
+    td { line-height: 1.55; }
+    tbody tr:hover { background: #fbfdfb; }
+    .primary-text { font-weight: 700; }
+    .secondary-text { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .pill {
+      display: inline-block; border-radius: 30px; padding: 5px 8px;
+      font-size: 10px; font-weight: 800; text-transform: capitalize;
+      background: #edf1ee; color: #536057; white-space: nowrap;
+    }
+    .pill.good { background: #e2f5e9; color: #176b46; }
+    .pill.warn { background: #fff1d5; color: #986006; }
+    .pill.bad { background: #ffe7e7; color: #b22b2b; }
+    .empty { text-align: center; color: var(--muted); padding: 28px; }
+
+    .insights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insight-list { display: grid; gap: 12px; margin-top: 16px; }
+    .insight-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding-bottom: 11px; border-bottom: 1px solid #edf1ee;
+    }
+    .insight-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .insight-row strong { font-size: 12px; }
+    .insight-row small { display: block; color: var(--muted); margin-top: 4px; font-size: 11px; }
+    .health-track { height: 9px; border-radius: 30px; background: #e7ede9; overflow: hidden; margin-top: 14px; }
+    .health-fill { height: 100%; width: 0; background: var(--green); border-radius: inherit; transition: width .3s; }
+
+    footer { padding: 25px 0 8px; color: var(--muted); font-size: 11px; text-align: center; }
+
+    @media(max-width: 950px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .charts { grid-template-columns: 1fr; }
+    }
+    @media(max-width: 560px) {
+      .app { padding: 15px; }
+      .stats { gap: 10px; }
+      .card { padding: 15px; border-radius: 14px; }
+      .stat-value { font-size: 27px; }
+      .insights { grid-template-columns: 1fr; }
+      .actions { width: 100%; }
+      .actions .btn { flex: 1; }
+      .chart-wrap { height: 240px; }
+    }
+    @media print {
+      body { background: white; }
+      .app { max-width: none; padding: 0; }
+      .actions, .toolbar, .no-print { display: none !important; }
+      .card { box-shadow: none; break-inside: avoid; }
+      .charts, .insights { grid-template-columns: 1fr 1fr; }
+      .table-scroll { overflow: visible; }
+      table { min-width: 0; }
+      th, td { padding: 7px; font-size: 9px; }
+      footer { padding-top: 15px; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo">K</div>
+      <div>
+        <h1>Reports & Analytics</h1>
+        <div class="subtitle">Kleensure · Inventory and equipment borrowing overview</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="history.back()">← Back</button>
+      <button class="btn" id="refreshBtn">↻ Refresh</button>
+      <button class="btn" id="csvBtn">Export CSV</button>
+      <button class="btn primary" id="printBtn">Print Report</button>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+  <div class="section-head">
+    <div>
+      <h2>Inventory Overview</h2>
+      <p>Equipment stock and inventory condition based on available records.</p>
+    </div>
+  </div>
+
+  <div class="grid stats">
+    <div class="card">
+      <div class="stat-icon">EQ</div>
+      <div class="stat-label">Equipment Types</div>
+      <div class="stat-value" id="equipmentCount">—</div>
+      <div class="stat-note">Number of item documents</div>
+    </div>
+    <div class="card">
+      <div class="stat-icon">ST</div>
+      <div class="stat-label">Total Stock</div>
+      <div class="stat-value" id="totalStock">—</div>
+      <div class="stat-note">Sum of recorded quantities</div>
+    </div>
+    <div class="card">
+      <div class="stat-icon warn">LS</div>
+      <div class="stat-label">Low Stock</div>
+      <div class="stat-value" id="lowStock">—</div>
+      <div class="stat-note">Quantity of 10 or below</div>
+    </div>
+    <div class="card">
+      <div class="stat-icon danger">OS</div>
+      <div class="stat-label">Out of Stock</div>
+      <div class="stat-value" id="outOfStock">—</div>
+      <div class="stat-note">Recorded quantity of zero or less</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h2>Borrowing Overview</h2>
+      <p>Borrow activity is calculated from borrow_logs. A batch may contain multiple item records.</p>
+    </div>
+  </div>
+
+  <div class="grid stats">
+    <div class="card">
+      <div class="stat-icon">BR</div>
+      <div class="stat-label">Borrow Records</div>
+      <div class="stat-value" id="borrowCount">—</div>
+      <div class="stat-note">Individual records in borrow_logs</div>
+    </div>
+    <div class="card">
+      <div class="stat-icon">RT</div>
+      <div class="stat-label">Returned Records</div>
+      <div class="stat-value" id="returnedCount">—</div>
+      <div class="stat-note">Records identified as returned</div>
+    </div>
+    <div class="card">
+      <div class="stat-icon warn">PN</div>
+      <div class="stat-label">Pending / Active</div>
+      <div class="stat-value" id="pendingCount">—</div>
+      <div class="stat-note">Records not identified as returned</div>
+    </div>
+    <div class="card">
+      <div class="stat-icon danger">OD</div>
+      <div class="stat-label">Overdue Records</div>
+      <div class="stat-value" id="overdueCount">—</div>
+      <div class="stat-note">Past due date and not returned</div>
+    </div>
+  </div>
+
+  <div class="grid charts" style="margin-top:15px">
+    <div class="card chart-card">
+      <h3>Borrowing Status</h3>
+      <p>Distribution of individual borrowing records.</p>
+      <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+    </div>
+    <div class="card chart-card">
+      <h3>Inventory Stock Levels</h3>
+      <p>Comparison of low-stock and adequately stocked equipment.</p>
+      <div class="chart-wrap"><canvas id="stockChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid insights" style="margin-top:15px">
+    <div class="card">
+      <h3 style="margin:0;font-size:14px">Inventory Health</h3>
+      <p class="subtitle">A simple stock-risk indicator, not a physical inspection.</p>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:18px">
+        <strong id="healthValue" style="font-size:32px">—</strong>
+        <span class="secondary-text">/ 100</span>
+      </div>
+      <div class="health-track"><div id="healthFill" class="health-fill"></div></div>
+      <p id="healthText" class="subtitle">Waiting for inventory data…</p>
+    </div>
+    <div class="card">
+      <h3 style="margin:0;font-size:14px">Most Borrowed Equipment</h3>
+      <p class="subtitle">Ranked by the number of matching borrowing records.</p>
+      <div id="popularItems" class="insight-list"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h2>Restock Recommendations</h2>
+      <p>Items with low or depleted recorded stock.</p>
+    </div>
+  </div>
+  <div class="card table-card">
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Equipment</th><th>Current Stock</th><th>Recommendation</th><th>Record ID</th>
+        </tr></thead>
+        <tbody id="restockBody"><tr><td colspan="4" class="empty">Loading inventory…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h2>Borrowing Batch Report</h2>
+      <p>Groups borrowing records by batch when a batch identifier is available.</p>
+    </div>
+  </div>
+
+  <div class="toolbar no-print">
+    <input id="borrowSearch" type="search" placeholder="Search borrower, equipment, batch, or ID…">
+    <select id="borrowFilter">
+      <option value="all">All statuses</option>
+      <option value="active">Pending / Active</option>
+      <option value="returned">Returned</option>
+      <option value="overdue">Overdue</option>
+    </select>
+    <select id="batchFilter">
+      <option value="all">All batch types</option>
+      <option value="grouped">Has batch ID</option>
+      <option value="individual">No batch ID</option>
+    </select>
+  </div>
+
+  <div class="card table-card">
+    <div class="table-top">
+      <h3>Borrowing Records</h3>
+      <span id="borrowResultCount">Loading records…</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Borrower</th><th>Equipment</th><th>Quantity</th><th>Batch</th>
+          <th>Borrowed</th><th>Due Date</th><th>Status</th>
+        </tr></thead>
+        <tbody id="borrowBody">
+          <tr><td colspan="7" class="empty">Loading borrowing records…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h2>Inventory Register</h2>
+      <p>Search and review the current item documents.</p>
+    </div>
+  </div>
+
+  <div class="toolbar no-print">
+    <input id="itemSearch" type="search" placeholder="Search equipment name, category, or ID…">
+    <select id="itemFilter">
+      <option value="all">All stock levels</option>
+      <option value="low">Low stock</option>
+      <option value="out">Out of stock</option>
+      <option value="healthy">Above low-stock threshold</option>
+    </select>
+  </div>
+
+  <div class="card table-card">
+    <div class="table-top">
+      <h3>Inventory Records</h3>
+      <span id="itemResultCount">Loading records…</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Equipment</th><th>Category</th><th>Quantity</th><th>Stock Status</th><th>Record ID</th>
+        </tr></thead>
+        <tbody id="itemBody">
+          <tr><td colspan="5" class="empty">Loading inventory…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h2>Data & System Checks</h2>
+      <p>Shows query outcomes for this report session, not a complete infrastructure health check.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div id="systemChecks" class="insight-list">
+      <div class="insight-row"><strong>Authentication</strong><span class="pill">Checking…</span></div>
+      <div class="insight-row"><strong>Firestore reads</strong><span class="pill">Checking…</span></div>
+      <div class="insight-row"><strong>Last report refresh</strong><span id="lastRefresh" class="secondary-text">Not yet refreshed</span></div>
+    </div>
+  </div>
+
+  <footer>
+    Kleensure Inventory Management · Confidential internal report<br>
+    Generated locally from available Firebase records.
+  </footer>
+</div>
+
+<script type="module">
+  import { auth, db } from "../firebase.js";
+  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+  import {
+    collection, doc, getDoc, getDocs
+  } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+  const $ = id => document.getElementById(id);
+  const LOW_STOCK_LIMIT = 10;
+
+  let items = [];
+  let borrowLogs = [];
+  let borrowBatches = [];
+  let charts = {};
+  let authState = "Checking";
+  let loadState = { items: "Not loaded", borrow_logs: "Not loaded", borrow_batches: "Not loaded" };
+  let currentUser = null;
+
+  function textValue(value, fallback = "—") {
+    if (value === undefined || value === null || String(value).trim() === "") return fallback;
+    if (typeof value === "object") return fallback;
+    return String(value);
+  }
+
+  function first(data, keys, fallback = "") {
+    for (const key of keys) {
+      const value = data?.[key];
+      if (value !== undefined && value !== null && value !== "") return value;
+    }
+    return fallback;
+  }
+
+  function numeric(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function dateValue(value) {
+    if (!value) return null;
+    if (value?.toDate && typeof value.toDate === "function") {
+      const d = value.toDate();
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof value === "object" && Number.isFinite(value.seconds)) {
+      const d = new Date(value.seconds * 1000);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof value === "number") {
+      const d = new Date(value < 1e12 ? value * 1000 : value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof value === "string") {
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    return null;
+  }
+
+  function dateLabel(value) {
+    const d = dateValue(value);
+    return d ? d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+  }
+
+  function normalized(value) {
+    return String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, " ");
+  }
+
+  function itemName(data) {
+    return textValue(first(data, ["item_name", "itemName", "name", "equipment_name", "equipmentName"], "Unnamed equipment"), "Unnamed equipment");
+  }
+
+  function itemQuantity(data) {
+    return numeric(first(data, ["quantity", "stock", "qty", "available_quantity", "availableQuantity"], 0));
+  }
+
+  function borrowerName(data) {
+    return textValue(first(data, [
+      "borrower_name", "borrowerName", "user_name", "userName",
+      "full_name", "fullName", "name", "borrower", "employee_name",
+      "employeeName", "student_name", "studentName"
+    ], "Unknown borrower"), "Unknown borrower");
+  }
+
+  function logItemName(data) {
+    const name = first(data, [
+      "item_name", "itemName", "equipment_name", "equipmentName",
+      "product_name", "productName", "name"
+    ]);
+    if (name) return textValue(name);
+    const nested = first(data, ["item", "equipment"]);
+    if (nested && typeof nested === "object") return itemName(nested);
+    const itemId = first(data, ["item_id", "itemId", "equipment_id", "equipmentId", "product_id", "productId"]);
+    if (itemId) {
+      const match = items.find(x => x.id === String(itemId));
+      if (match) return itemName(match.data);
+      return `Item ID: ${itemId}`;
+    }
+    return "Unspecified equipment";
+  }
+
+  function batchId(data) {
+    const nested = first(data, ["batch", "borrow_batch"]);
+    return textValue(first(data, [
+      "batch_id", "batchId", "borrow_batch_id", "borrowBatchId",
+      "batchID", "transaction_id", "transactionId", "group_id", "groupId"
+    ], nested && typeof nested === "object" ? first(nested, ["id", "batch_id", "batchId"], "") : ""), "");
+  }
+
+  function borrowDate(data) {
+    return first(data, ["borrow_date", "borrowDate", "borrowed_at", "borrowedAt", "created_at", "createdAt", "date_borrowed", "dateBorrowed"], null);
+  }
+
+  function dueDate(data) {
+    return first(data, ["due_date", "dueDate", "return_date", "returnDate", "expected_return", "expectedReturn", "expected_return_date", "expectedReturnDate"], null);
+  }
+
+  function returnedDate(data) {
+    return first(data, ["returned_at", "returnedAt", "actual_return_date", "actualReturnDate", "date_returned", "dateReturned"], null);
+  }
+
+  function isReturned(data) {
+    const status = normalized(first(data, ["status", "borrow_status", "borrowStatus", "return_status", "returnStatus"], ""));
+    if (["returned", "complete", "completed", "closed", "received"].includes(status)) return true;
+    if (["pending", "borrowed", "active", "approved", "ongoing", "overdue", "not returned"].includes(status)) return false;
+    if (data?.is_returned === true || data?.isReturned === true || data?.returned === true) return true;
+    return Boolean(returnedDate(data));
+  }
+
+  function statusFor(data) {
+    if (isReturned(data)) return "returned";
+    const due = dateValue(dueDate(data));
+    if (due && due.getTime() < Date.now()) return "overdue";
+    return "active";
+  }
+
+  function statusPill(status) {
+    const cls = status === "returned" ? "good" : status === "overdue" ? "bad" : "warn";
+    const label = status === "active" ? "Pending / Active" : status;
+    return `<span class="pill ${cls}">${escapeHtml(label)}</span>`;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[ch]);
+  }
+
+  function safeCell(value) {
+    return escapeHtml(textValue(value));
+  }
+
+  function showNotice(message, type = "info") {
+    const el = $("notice");
+    el.textContent = message;
+    el.className = `notice show ${type}`;
+  }
+
+  function hideNotice() {
+    $("notice").className = "notice";
+    $("notice").textContent = "";
+  }
+
+  function setCount(id, value) {
+    $(id).textContent = Number(value || 0).toLocaleString();
+  }
+
+  function buildItem(docSnap) {
+    return { id: docSnap.id, data: docSnap.data() || {} };
+  }
+
+  function buildLog(docSnap) {
+    return { id: docSnap.id, data: docSnap.data() || {} };
+  }
+
+  async function fetchCollection(name, stateKey) {
+    try {
+      const snapshot = await getDocs(collection(db, name));
+      loadState[stateKey] = "Success";
+      return snapshot.docs.map(name === "items" ? buildItem : buildLog);
+    } catch (error) {
+      loadState[stateKey] = `Failed: ${error?.code || error?.message || "read error"}`;
+      console.error(`Failed to read ${name}:`, error);
+      return null;
+    }
+  }
+
+  async function refreshReport() {
+    hideNotice();
+    $("refreshBtn").disabled = true;
+    $("refreshBtn").textContent = "Loading…";
+
+    try {
+      const results = await Promise.all([
+        fetchCollection("items", "items"),
+        fetchCollection("borrow_logs", "borrow_logs"),
+        fetchCollection("borrow_batches", "borrow_batches")
+      ]);
+
+      items = results[0] ?? [];
+      borrowLogs = results[1] ?? [];
+      borrowBatches = results[2] ?? [];
+
+      renderAll();
+      renderChecks();
+
+      const failed = Object.values(loadState).some(s => s.startsWith("Failed:"));
+      if (failed) {
+        const failedNames = Object.entries(loadState)
+          .filter(([, value]) => value.startsWith("Failed:"))
+          .map(([key]) => key)
+          .join(", ");
+        showNotice(
+          `Some data could not be read: ${failedNames}. The affected section may be incomplete. Check your Firestore rules and collection names.`,
+          "error"
+        );
+      } else {
+        showNotice("Reports refreshed using the latest records available to this account.", "success");
+      }
+     const lastRefreshEl = document.getElementById("lastRefresh");
+
+if (lastRefreshEl) {
+  lastRefreshEl.textContent = new Date().toLocaleString();
+}
+    } catch (error) {
+      console.error(error);
+      showNotice("Unable to refresh reports. Check your Firebase configuration and Firestore permissions.", "error");
+    } finally {
+      $("refreshBtn").disabled = false;
+      $("refreshBtn").textContent = "↻ Refresh";
+    }
+  }
+
+  function renderAll() {
+    const quantities = items.map(x => itemQuantity(x.data));
+    const totalStock = quantities.reduce((sum, n) => sum + Math.max(0, n), 0);
+    const lowItems = items.filter(x => itemQuantity(x.data) > 0 && itemQuantity(x.data) <= LOW_STOCK_LIMIT);
+    const outItems = items.filter(x => itemQuantity(x.data) <= 0);
+    const returned = borrowLogs.filter(x => isReturned(x.data)).length;
+    const overdue = borrowLogs.filter(x => statusFor(x.data) === "overdue").length;
+    const pending = borrowLogs.length - returned;
+
+    setCount("equipmentCount", items.length);
+    setCount("totalStock", totalStock);
+    setCount("lowStock", lowItems.length);
+    setCount("outOfStock", outItems.length);
+    setCount("borrowCount", borrowLogs.length);
+    setCount("returnedCount", returned);
+    setCount("pendingCount", pending);
+    setCount("overdueCount", overdue);
+
+    const health = items.length
+      ? Math.max(0, Math.round(100 - (lowItems.length * 10) - (outItems.length * 20)))
+      : 0;
+    $("healthValue").textContent = items.length ? health : "—";
+    $("healthFill").style.width = `${health}%`;
+    $("healthText").textContent = !items.length
+      ? "No inventory records available to calculate a score."
+      : health >= 80 ? "Low stock risk based on recorded quantities."
+      : health >= 50 ? "Some equipment requires stock attention."
+      : "High stock risk. Review low and depleted items.";
+
+    renderCharts(lowItems.length, outItems.length, items.length - lowItems.length - outItems.length, returned, pending);
+    renderPopularItems();
+    renderRestock();
+    renderBorrowTable();
+    renderItemTable();
+  }
+
+  function renderCharts(low, out, healthy, returned, pending) {
+    if (typeof Chart === "undefined") {
+      showNotice("Chart.js did not load. The tables and numeric reports can still be used.", "error");
+      return;
+    }
+
+    Object.values(charts).forEach(chart => chart?.destroy());
+
+    charts.status = new Chart($("statusChart"), {
+      type: "doughnut",
+      data: {
+        labels: ["Returned", "Pending / Active", "Overdue"],
+        datasets: [{
+          data: [
+            returned,
+            Math.max(0, pending - borrowLogs.filter(x => statusFor(x.data) === "overdue").length),
+            borrowLogs.filter(x => statusFor(x.data) === "overdue").length
+          ],
+          backgroundColor: ["#218454", "#e8ae3b", "#c63d3d"],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } }
+      }
+    });
+
+    charts.stock = new Chart($("stockChart"), {
+      type: "bar",
+      data: {
+        labels: ["Healthy", "Low Stock", "Out of Stock"],
+        datasets: [{
+          label: "Equipment types",
+          data: [Math.max(0, healthy), low, out],
+          backgroundColor: ["#218454", "#e8ae3b", "#c63d3d"],
+          borderRadius: 7,
+          maxBarThickness: 58
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+  }
+
+  function renderPopularItems() {
+    const counts = new Map();
+    for (const log of borrowLogs) {
+      const name = logItemName(log.data);
+      counts.set(name, (counts.get(name) || 0) + 1);
+    }
+
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    $("popularItems").innerHTML = sorted.length
+      ? sorted.map(([name, count], i) => `
+          <div class="insight-row">
+  <strong>Last report refresh</strong>
+  <span id="lastRefresh" class="secondary-text">Not yet refreshed</span>
+</div>`).join("")
+      : `<div class="empty">No borrowing records available.</div>`;
+  }
+
+  function renderRestock() {
+    const low = items
+      .filter(x => itemQuantity(x.data) <= LOW_STOCK_LIMIT)
+      .sort((a, b) => itemQuantity(a.data) - itemQuantity(b.data));
+
+    $("restockBody").innerHTML = low.length ? low.map(x => {
+      const qty = itemQuantity(x.data);
+      const recommendation = qty <= 0 ? "Restock urgently" : "Review restock level";
+      return `<tr>
+        <td><span class="primary-text">${safeCell(itemName(x.data))}</span></td>
+        <td>${qty}</td>
+        <td>${statusPill(qty <= 0 ? "overdue" : "active")}<div class="secondary-text">${recommendation}</div></td>
+        <td>${safeCell(x.id)}</td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="4" class="empty">No low-stock items found.</td></tr>`;
+  }
+
+  function batchDetails(batch) {
+    return first(batch, ["batch_name", "batchName", "name", "title", "reference", "reference_no", "referenceNo"], "");
+  }
+
+  function renderBorrowTable() {
+    const query = normalized($("borrowSearch").value);
+    const filter = $("borrowFilter").value;
+    const batchMode = $("batchFilter").value;
+
+    const enriched = borrowLogs.map(log => {
+      const status = statusFor(log.data);
+      const batch = batchId(log.data);
+      const batchDoc = batch ? borrowBatches.find(x => x.id === batch) : null;
+      const borrower = borrowerName(log.data);
+      const equipment = logItemName(log.data);
+      const qty = numeric(first(log.data, ["quantity", "qty", "borrowed_quantity", "borrowedQuantity"], 1), 1);
+      const due = dueDate(log.data);
+      const borrowed = borrowDate(log.data);
+      const searchText = normalized([
+        borrower, equipment, batch, log.id,
+        batchDoc ? batchDetails(batchDoc.data) : "",
+        first(log.data, ["user_id", "userId", "borrower_id", "borrowerId"], "")
+      ].join(" "));
+
+      return { log, status, batch, batchDoc, borrower, equipment, qty, due, borrowed, searchText };
+    });
+
+    const filtered = enriched.filter(x => {
+      if (query && !x.searchText.includes(query)) return false;
+      if (filter !== "all" && x.status !== filter) return false;
+      if (batchMode === "grouped" && !x.batch) return false;
+      if (batchMode === "individual" && x.batch) return false;
+      return true;
+    });
+
+    $("borrowResultCount").textContent = `${filtered.length} of ${borrowLogs.length} records`;
+    $("borrowBody").innerHTML = filtered.length ? filtered.map(x => `
+      <tr>
+        <td><span class="primary-text">${escapeHtml(x.borrower)}</span>
+          <div class="secondary-text">${safeCell(first(x.log.data, ["user_id", "userId", "borrower_id", "borrowerId"], x.log.id))}</div>
+        </td>
+        <td><span class="primary-text">${escapeHtml(x.equipment)}</span>
+          <div class="secondary-text">Log: ${safeCell(x.log.id)}</div>
+        </td>
+        <td>${x.qty}</td>
+        <td>${x.batch
+          ? `<span class="primary-text">${safeCell(x.batch)}</span><div class="secondary-text">${safeCell(batchDetails(x.batchDoc?.data || {}))}</div>`
+          : `<span class="secondary-text">Individual record</span>`}
+        </td>
+        <td>${dateLabel(x.borrowed)}</td>
+        <td>${dateLabel(x.due)}</td>
+        <td>${statusPill(x.status)}</td>
+      </tr>`).join("") : `<tr><td colspan="7" class="empty">No borrowing records match your search or filters.</td></tr>`;
+  }
+
+  function stockStatus(qty) {
+    if (qty <= 0) return "out";
+    if (qty <= LOW_STOCK_LIMIT) return "low";
+    return "healthy";
+  }
+
+  function renderItemTable() {
+    const query = normalized($("itemSearch").value);
+    const filter = $("itemFilter").value;
+    const filtered = items.filter(x => {
+      const d = x.data;
+      const qty = itemQuantity(d);
+      const searchText = normalized([
+        itemName(d), first(d, ["category", "item_category", "itemCategory", "type"], ""),
+        x.id, first(d, ["description", "sku", "item_code", "itemCode"], "")
+      ].join(" "));
+      return (!query || searchText.includes(query)) && (filter === "all" || stockStatus(qty) === filter);
+    });
+
+    $("itemResultCount").textContent = `${filtered.length} of ${items.length} items`;
+    $("itemBody").innerHTML = filtered.length ? filtered.map(x => {
+      const d = x.data;
+      const qty = itemQuantity(d);
+      const status = stockStatus(qty);
+      const label = status === "out" ? "Out of stock" : status === "low" ? "Low stock" : "Adequate";
+      return `<tr>
+        <td><span class="primary-text">${safeCell(itemName(d))}</span>
+          <div class="secondary-text">${safeCell(first(d, ["description", "sku", "item_code", "itemCode"], ""))}</div>
+        </td>
+        <td>${safeCell(first(d, ["category", "item_category", "itemCategory", "type"], "Uncategorized"))}</td>
+        <td>${qty}</td>
+        <td>${statusPill(status === "healthy" ? "returned" : status === "out" ? "overdue" : "active")}
+          <div class="secondary-text">${label}</div>
+        </td>
+        <td>${safeCell(x.id)}</td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="5" class="empty">No inventory items match your search or filter.</td></tr>`;
+  }
+
+  function renderChecks() {
+  const lastRefreshEl = document.getElementById("lastRefresh");
+
+  const rows = [
+    ["Authentication", authState],
+    ["Inventory query", loadState.items],
+    ["Borrow log query", loadState.borrow_logs],
+    ["Batch query", loadState.borrow_batches]
+  ];
+
+  const checks = document.getElementById("systemChecks");
+  if (!checks) return;
+
+  checks.innerHTML = rows.map(([name, state]) => {
+    const ok = state === "Authenticated" || state === "Success";
+    const failed = String(state).startsWith("Failed");
+
+    return `<div class="insight-row">
+      <strong>${escapeHtml(name)}</strong>
+      <span class="pill ${ok ? "good" : failed ? "bad" : "warn"}">
+        ${escapeHtml(state)}
+      </span>
+    </div>`;
+  }).join("") + `
+    <div class="insight-row">
+      <strong>Last report refresh</strong>
+      <span class="secondary-text">
+        ${escapeHtml(lastRefreshEl?.textContent || "Not yet refreshed")}
+      </span>
+    </div>`;
+}
+
+  function protectCsv(value) {
+    let s = String(value ?? "");
+    // Prevent spreadsheet formula execution in exported text cells.
+    if (/^[\s\u0000-\u001f]*[=+\-@]/.test(s)) s = "'" + s;
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+
+  function downloadCsv(filename, rows) {
+    const csv = "\uFEFF" + rows.map(row => row.map(protectCsv).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportReports() {
+    const rows = [
+      ["Kleensure Advanced Reports"],
+      ["Generated at", new Date().toISOString()],
+      [],
+      ["INVENTORY REPORT"],
+      ["Document ID", "Equipment", "Category", "Quantity", "Stock Status", "Created At"],
+      ...items.map(x => [
+        x.id, itemName(x.data),
+        first(x.data, ["category", "item_category", "itemCategory", "type"], "Uncategorized"),
+        itemQuantity(x.data), stockStatus(itemQuantity(x.data)),
+        dateLabel(first(x.data, ["created_at", "createdAt", "date_added", "dateAdded"], null))
+      ]),
+      [],
+      ["BORROWING REPORT"],
+      ["Log ID", "Borrower", "Equipment", "Quantity", "Batch ID", "Borrow Date", "Due Date", "Returned Date", "Status"],
+      ...borrowLogs.map(x => [
+        x.id, borrowerName(x.data), logItemName(x.data),
+        numeric(first(x.data, ["quantity", "qty", "borrowed_quantity", "borrowedQuantity"], 1), 1),
+        batchId(x.data), dateLabel(borrowDate(x.data)), dateLabel(dueDate(x.data)),
+        dateLabel(returnedDate(x.data)), statusFor(x.data)
+      ]),
+      [],
+      ["BATCH REPORT"],
+      ["Batch ID", "Batch Name / Reference", "Document ID"],
+      ...borrowBatches.map(x => [x.id, batchDetails(x.data), x.id])
+    ];
+    downloadCsv(`kleensure-report-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  }
+
+  $("refreshBtn").addEventListener("click", refreshReport);
+  $("csvBtn").addEventListener("click", exportReports);
+  $("printBtn").addEventListener("click", () => window.print());
+  $("borrowSearch").addEventListener("input", renderBorrowTable);
+  $("borrowFilter").addEventListener("change", renderBorrowTable);
+  $("batchFilter").addEventListener("change", renderBorrowTable);
+  $("itemSearch").addEventListener("input", renderItemTable);
+  $("itemFilter").addEventListener("change", renderItemTable);
+
+  onAuthStateChanged(auth, async user => {
+    currentUser = user;
+    if (!user) {
+      authState = "Unauthenticated";
+      renderChecks();
+      window.location.replace("../login.html");
+      return;
+    }
+
+    try {
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      if (!userSnap.exists()) {
+        authState = "User profile missing";
+        renderChecks();
+        showNotice("Your Firebase account does not have a matching users profile. Contact the administrator.", "error");
+        return;
+      }
+
+      const profile = userSnap.data() || {};
+      const role = normalized(first(profile, ["role", "user_role", "userRole", "account_type", "accountType"], ""));
+      const adminFlag = profile.isAdmin === true || profile.is_admin === true || profile.admin === true;
+      const isAdmin = adminFlag || ["admin", "administrator", "owner", "manager"].includes(role);
+
+      if (!isAdmin) {
+        authState = "Authenticated · access not verified";
+        renderChecks();
+        showNotice("Your account is signed in, but its profile does not identify it as an administrator. Confirm your role settings before using this page.", "error");
+        return;
+      }
+
+      authState = "Authenticated";
+      await refreshReport();
+    } catch (error) {
+      console.error("User profile verification failed:", error);
+      authState = "Profile check failed";
+      renderChecks();
+      showNotice("Unable to verify your user profile. Check Firestore permissions for users/{uid}.", "error");
+    }
+  });
+</script>
+</body>
+</html>

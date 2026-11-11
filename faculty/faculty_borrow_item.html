@@ -1,0 +1,510 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Borrow Item | PTC Inventory</title>
+
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg,#07111f,#0f172a,#001f2f);
+      min-height: 100vh;
+      padding: 30px;
+      color: white;
+    }
+
+    .wrapper { max-width: 1200px; margin: auto; }
+
+    .top { margin-bottom: 20px; }
+
+    .top a {
+      display: inline-block;
+      padding: 14px 22px;
+      border-radius: 18px;
+      text-decoration: none;
+      font-weight: bold;
+      background: rgba(255,255,255,.08);
+      color: white;
+      transition: .3s;
+    }
+
+    .top a:hover { background: #6c5ce7; }
+
+    .card {
+      background: rgba(255,255,255,.08);
+      backdrop-filter: blur(15px);
+      padding: 40px;
+      border-radius: 35px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+
+    .title {
+      font-size: 42px;
+      font-weight: bold;
+      margin-bottom: 30px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+
+    .info, .form-box {
+      background: rgba(255,255,255,.06);
+      padding: 30px;
+      border-radius: 25px;
+      min-width: 0;
+    }
+
+    .info { line-height: 2; overflow-wrap: anywhere; }
+
+    .info h2, .form-box h2 {
+      margin-bottom: 18px;
+      font-size: 25px;
+    }
+
+    .info b { color: #81ecec; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+      gap: 18px;
+      margin-bottom: 25px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,.06);
+      padding: 22px;
+      border-radius: 22px;
+      text-align: center;
+    }
+
+    .stat h3 {
+      font-size: 15px;
+      margin-bottom: 10px;
+      color: #81ecec;
+    }
+
+    .stat p { font-size: 36px; font-weight: bold; }
+
+    form { display: flex; flex-direction: column; gap: 18px; }
+
+    label { font-size: 14px; color: #dbeafe; }
+
+    select, input {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 15px;
+      font-size: 16px;
+      background: rgba(255,255,255,.95);
+      color: #172033;
+    }
+
+    input[type="file"] { font-size: 13px; }
+
+    button {
+      padding: 18px;
+      border: none;
+      border-radius: 18px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      background: linear-gradient(135deg,#6c5ce7,#00cec9);
+      color: white;
+      transition: .3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(108,92,231,.35);
+    }
+
+    button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+    .message {
+      display: none;
+      padding: 14px;
+      margin-bottom: 22px;
+      border-radius: 14px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .message.error { display: block; background: #7f1d1d; }
+    .message.success { display: block; background: #166534; }
+    .message.info { display: block; background: #075985; }
+
+    .hint {
+      font-size: 12px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    @media(max-width:900px) {
+      body { padding: 16px; }
+      .grid { grid-template-columns: 1fr; }
+      .title { font-size: 32px; }
+      .card { padding: 24px 18px; }
+      .info, .form-box { padding: 22px; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrapper">
+
+  <div class="top">
+    <a href="faculty_request.html">
+      <i class="fa-solid fa-arrow-left"></i> Back to Faculty Center
+    </a>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <h3>📦 Current Borrowed</h3>
+      <p id="currentBorrowed">—</p>
+    </div>
+    <div class="stat">
+      <h3>📚 Borrow Limit</h3>
+      <p id="borrowLimit">5</p>
+    </div>
+    <div class="stat">
+      <h3>✅ Remaining Slot</h3>
+      <p id="remaining">—</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="title">📦 Faculty Borrow Item</div>
+
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+
+    <div class="grid">
+      <section class="info">
+        <h2>👨‍🏫 Faculty Information</h2>
+        <b>Name:</b> <span id="facultyName">Loading...</span><br>
+        <b>Email:</b> <span id="facultyEmail">Loading...</span><br>
+        <b>Role:</b> <span id="facultyRole">Loading...</span><br>
+        <b>User ID:</b> <span id="facultyId">Loading...</span>
+      </section>
+
+      <section class="form-box">
+        <h2>🚀 Borrow Request Form</h2>
+
+        <form id="borrowForm">
+          <label for="itemId">Select inventory item</label>
+          <select id="itemId" required disabled>
+            <option value="">Loading available items...</option>
+          </select>
+
+          <label for="quantity">Requested quantity</label>
+          <input id="quantity" type="number" placeholder="Quantity"
+                 min="1" step="1" required>
+
+          <label for="proof">Proof image (required)</label>
+          <input id="proof" type="file" accept="image/*" required>
+
+          <p class="hint">
+            Upload a clear image as supporting proof. Allowed formats depend
+            on your browser; maximum file size is 5 MB.
+          </p>
+
+          <button id="submitBtn" type="submit" disabled>
+            <i class="fa-solid fa-paper-plane"></i>
+            Submit Borrow Request
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <div class="footer">PTC Institutional Inventory System © 2026</div>
+  </div>
+</div>
+
+<script type="module">
+  import { auth, db, storage } from "./firebase.js";
+
+  import { onAuthStateChanged } from
+    "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+  import {
+    collection, doc, getDoc, getDocs, query, where, addDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+  import {
+    ref, uploadBytes, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+
+  const $ = id => document.getElementById(id);
+  const BORROW_LIMIT = 5;
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+  let signedInUser = null;
+  let facultyProfile = null;
+  let availableItems = [];
+  let activeBorrowed = 0;
+  let submitting = false;
+
+  function message(text, type = "info") {
+    const box = $("message");
+    box.textContent = text;
+    box.className = "message " + type;
+  }
+
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;",
+      '"': "&quot;", "'": "&#39;"
+    })[c]);
+  }
+
+  function updateStats() {
+    $("currentBorrowed").textContent = activeBorrowed;
+    $("borrowLimit").textContent = BORROW_LIMIT;
+    $("remaining").textContent = Math.max(0, BORROW_LIMIT - activeBorrowed);
+
+    const limitReached = activeBorrowed >= BORROW_LIMIT;
+    $("submitBtn").disabled =
+      !signedInUser || !facultyProfile || !availableItems.length ||
+      limitReached || submitting;
+
+    if (limitReached) {
+      message("Borrow limit reached. You cannot submit another request until your active borrowed count decreases.", "error");
+    }
+  }
+
+  async function loadFaculty(uid) {
+    const profileRef = doc(db, "users", uid);
+    const profileSnap = await getDoc(profileRef);
+
+    if (!profileSnap.exists()) {
+      throw new Error("Your Firebase users profile was not found.");
+    }
+
+    const profile = profileSnap.data();
+    const role = String(profile.role || "").trim().toLowerCase();
+
+    // Faculty borrower page only.
+    if (role !== "faculty") {
+      throw new Error("This page is for Faculty accounts only.");
+    }
+
+    facultyProfile = { id: profileSnap.id, ...profile };
+
+    $("facultyName").textContent = profile.username || profile.name || "Faculty";
+    $("facultyEmail").textContent =
+      profile.institutional_email || profile.email || signedInUser.email || "—";
+    $("facultyRole").textContent = profile.role || "Faculty";
+    $("facultyId").textContent = profile.user_id ?? uid;
+  }
+
+  async function loadBorrowCount() {
+    // This follows the original PHP logic: count active borrow log records.
+    // Requires rules that allow a borrower to read their own logs.
+    const q = query(
+      collection(db, "borrow_logs"),
+      where("user_id", "==", signedInUser.uid),
+      where("status", "==", "borrowed")
+    );
+
+    const snapshot = await getDocs(q);
+    activeBorrowed = snapshot.size;
+    updateStats();
+  }
+
+  async function loadItems() {
+    const selector = $("itemId");
+    selector.innerHTML = '<option value="">Select Item</option>';
+
+    const q = query(collection(db, "items"), where("quantity", ">", 0));
+    const snapshot = await getDocs(q);
+
+    availableItems = snapshot.docs
+      .map(s => ({ id: s.id, ...s.data() }))
+      .filter(item => Number(item.quantity) > 0)
+      .sort((a, b) =>
+        String(a.item_name || a.name || "")
+          .localeCompare(String(b.item_name || b.name || ""))
+      );
+
+    for (const item of availableItems) {
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent =
+        `${item.item_name || item.name || "Unnamed item"} (${item.quantity} available)`;
+      selector.appendChild(option);
+    }
+
+    selector.disabled = availableItems.length === 0;
+
+    if (!availableItems.length) {
+      selector.innerHTML = '<option value="">No available items</option>';
+    }
+
+    updateStats();
+  }
+
+  $("itemId").addEventListener("change", () => {
+    const selected = availableItems.find(item => item.id === $("itemId").value);
+    $("quantity").max = selected ? Number(selected.quantity) : "";
+  });
+
+  $("borrowForm").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (submitting || !signedInUser || !facultyProfile) return;
+
+    const itemId = $("itemId").value;
+    const quantity = Number($("quantity").value);
+    const file = $("proof").files[0];
+    const selectedItem = availableItems.find(item => item.id === itemId);
+
+    if (!selectedItem) {
+      message("Please select a valid inventory item.", "error");
+      return;
+    }
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      message("Enter a valid whole-number quantity greater than zero.", "error");
+      return;
+    }
+
+    if (quantity > Number(selectedItem.quantity)) {
+      message("The requested quantity exceeds the currently displayed stock.", "error");
+      return;
+    }
+
+    if (activeBorrowed >= BORROW_LIMIT) {
+      message("Borrow limit reached.", "error");
+      return;
+    }
+
+    if (!file) {
+      message("Proof image is required.", "error");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      message("Please upload an image file.", "error");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      message("The proof image must be 5 MB or smaller.", "error");
+      return;
+    }
+
+    submitting = true;
+    $("submitBtn").disabled = true;
+    message("Uploading proof and submitting your request...", "info");
+
+    try {
+      // Recheck profile and item immediately before submission.
+      const [profileCheck, itemCheck] = await Promise.all([
+        getDoc(doc(db, "users", signedInUser.uid)),
+        getDoc(doc(db, "items", itemId))
+      ]);
+
+      if (!profileCheck.exists() || !itemCheck.exists()) {
+        throw new Error("Your profile or the selected inventory item no longer exists.");
+      }
+
+      const latestProfile = profileCheck.data();
+      const latestItem = itemCheck.data();
+
+      if (String(latestProfile.role || "").toLowerCase() !== "faculty") {
+        throw new Error("Only Faculty accounts can submit requests here.");
+      }
+
+      if (Number(latestItem.quantity || 0) < quantity) {
+        throw new Error("There is not enough stock for this quantity. Refresh and try again.");
+      }
+
+      // Upload proof image to Firebase Storage.
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const proofPath =
+        `borrow_proofs/${signedInUser.uid}/${crypto.randomUUID()}_${safeName}`;
+
+      const proofRef = ref(storage, proofPath);
+      await uploadBytes(proofRef, file, { contentType: file.type });
+      const proofURL = await getDownloadURL(proofRef);
+
+      // Store the request. Approval is handled separately by the approver page.
+      await addDoc(collection(db, "requests"), {
+        user_id: signedInUser.uid,
+        item_id: itemId,
+        username: latestProfile.username || latestProfile.name || "",
+        institutional_email:
+          latestProfile.institutional_email || latestProfile.email || signedInUser.email || "",
+        role: latestProfile.role || "faculty",
+        item_name: latestItem.item_name || latestItem.name || "",
+        quantity,
+        proof_borrow: proofURL,
+        proof_path: proofPath,
+        status: "pending",
+        request_date: serverTimestamp()
+      });
+
+      message("Faculty borrow request submitted successfully!", "success");
+      $("borrowForm").reset();
+
+      // Keep the displayed available-items list current.
+      await loadItems();
+
+      setTimeout(() => {
+        location.href = "faculty_my_requests.html";
+      }, 1200);
+
+    } catch (error) {
+      console.error("Borrow request error:", error);
+      message(error.message || "Unable to submit your borrow request.", "error");
+    } finally {
+      submitting = false;
+      updateStats();
+    }
+  });
+
+  onAuthStateChanged(auth, async user => {
+    $("submitBtn").disabled = true;
+    $("itemId").disabled = true;
+
+    if (!user) {
+      location.href = "login.html";
+      return;
+    }
+
+    signedInUser = user;
+
+    try {
+      await loadFaculty(user.uid);
+      await Promise.all([loadBorrowCount(), loadItems()]);
+      updateStats();
+    } catch (error) {
+      console.error(error);
+      message(error.message || "Unable to load faculty information.", "error");
+    }
+  });
+</script>
+</body>
+</html>

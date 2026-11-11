@@ -1,0 +1,317 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faculty Repair Center | PTC Inventory</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#0b1320,#0f172a,#001f2f);min-height:100vh;padding:30px;color:white;overflow-x:hidden}
+.wrapper{max-width:850px;margin:auto}
+.back{display:inline-block;margin-bottom:20px;padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:#ffffff14;color:white;transition:.3s}
+.back:hover{background:#6c5ce7}
+.card{background:#ffffff14;backdrop-filter:blur(15px);padding:40px;border-radius:35px;box-shadow:0 10px 40px #0005}
+.title{font-size:clamp(28px,4vw,42px);font-weight:bold;margin-bottom:25px}
+.alert{padding:20px;border-radius:22px;margin-bottom:25px;font-weight:bold;font-size:18px;animation:pulse 1.5s infinite}
+.damaged{background:linear-gradient(135deg,#ff4757,#ff6b81);box-shadow:0 0 25px #ff475773}
+.missing{background:linear-gradient(135deg,#ff9f43,#feca57);color:#111;box-shadow:0 0 25px #ff9f4373}
+.info{background:#ffffff0f;padding:22px;border-radius:20px;line-height:2;margin-bottom:25px;overflow-wrap:anywhere}
+.info b{color:#81ecec}
+.proof{width:100%;max-height:350px;object-fit:contain;background:#07111f;border-radius:22px;margin:0 0 25px;display:block}
+form{display:flex;flex-direction:column;gap:18px}
+label{font-weight:bold;color:#81ecec}
+textarea{width:100%;padding:18px;border:none;border-radius:18px;font-size:16px;background:#fffffff2;color:#111;min-height:160px;resize:vertical}
+button{padding:18px;border:none;border-radius:18px;font-size:18px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,#00b894,#55efc4);color:#0f172a;transition:.2s}
+button:hover{transform:translateY(-2px)}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.message{padding:14px;border-radius:14px;margin-bottom:20px;line-height:1.6;overflow-wrap:anywhere}
+.error{background:#7f1d1d;color:#fee2e2}
+.success{background:#064e3b;color:#d1fae5}
+.footer{text-align:center;margin-top:25px;color:#aaa;font-size:13px}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.01)}}
+@media(max-width:600px){body{padding:14px}.card{padding:23px 17px;border-radius:25px}.back{padding:12px 16px}.info{padding:17px}}
+</style>
+</head>
+
+<body>
+<div class="wrapper">
+
+<a href="faculty_borrow_logs.html" class="back">← Back to Borrow Logs</a>
+
+<div class="card">
+  <div class="title">🔧 Faculty Repair Center</div>
+
+  <div id="message" class="message" style="display:none"></div>
+  <div id="content">Loading repair record...</div>
+
+  <div class="footer">PTC Institutional Inventory System © 2026</div>
+</div>
+</div>
+
+<script type="module">
+import {auth,db} from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  doc,getDoc,runTransaction,serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const message=document.getElementById("message");
+const content=document.getElementById("content");
+const params=new URLSearchParams(location.search);
+const logId=params.get("id");
+
+let currentUser=null;
+let currentLog=null;
+let submitting=false;
+
+function showMessage(text,type="error"){
+  message.textContent=text;
+  message.className="message "+type;
+  message.style.display="block";
+}
+function hideMessage(){
+  message.style.display="none";
+}
+function addInfoLine(parent,label,value){
+  const line=document.createElement("div");
+  const b=document.createElement("b");
+  b.textContent=label+": ";
+  line.append(b,document.createTextNode(String(value??"—")));
+  parent.append(line);
+}
+function formatStatus(value){
+  return String(value||"unknown").toUpperCase().replaceAll("_"," ");
+}
+function isRepairNeeded(value){
+  const s=String(value||"").toLowerCase().replaceAll(" ","_");
+  return ["damaged","missing_parts","missing","broken"].includes(s);
+}
+function formatDate(value){
+  if(!value)return "—";
+  const date=typeof value.toDate==="function"?value.toDate():new Date(value);
+  return Number.isNaN(date.getTime())?"—":date.toLocaleString();
+}
+
+async function loadRecord(){
+  if(!logId){
+    content.replaceChildren();
+    const box=document.createElement("div");
+    box.className="empty";
+    const icon=document.createElement("div");
+    icon.style.fontSize="72px";
+    icon.textContent="🔧";
+    const title=document.createElement("h2");
+    title.textContent="Invalid Repair Request";
+    title.style.margin="15px 0";
+    const p=document.createElement("p");
+    p.textContent="No damaged item selected for repair.";
+    box.append(icon,title,p);
+    content.append(box);
+    return;
+  }
+
+  const profileSnap=await getDoc(doc(db,"users",currentUser.uid));
+
+  if(!profileSnap.exists()){
+    throw new Error("Hindi makita ang user profile.");
+  }
+
+  const profile=profileSnap.data();
+  if(String(profile.role||"").toLowerCase()!=="faculty"){
+    location.href="login.html";
+    return;
+  }
+
+  const logSnap=await getDoc(doc(db,"borrow_logs",logId));
+
+  if(!logSnap.exists()){
+    throw new Error("Repair record not found.");
+  }
+
+  currentLog={id:logSnap.id,...logSnap.data()};
+
+  // Only allow repairing a log belonging to the signed-in faculty.
+  if(String(currentLog.user_id)!==currentUser.uid){
+    throw new Error("Wala kang permission na baguhin ang repair record na ito.");
+  }
+
+  const status=String(currentLog.return_status||"").toLowerCase().replaceAll(" ","_");
+
+  if(!isRepairNeeded(status)){
+    throw new Error("Ang item na ito ay walang damaged o missing-parts status na nangangailangan ng repair.");
+  }
+
+  let itemName=currentLog.item_name||"Unknown Item";
+  if(currentLog.item_id){
+    try{
+      const itemSnap=await getDoc(doc(db,"items",String(currentLog.item_id)));
+      if(itemSnap.exists()){
+        const item=itemSnap.data();
+        itemName=item.item_name||item.name||itemName;
+      }
+    }catch(e){
+      console.warn("Item name unavailable:",e);
+    }
+  }
+
+  renderRecord(itemName);
+}
+
+function renderRecord(itemName){
+  const status=String(currentLog.return_status||"").toLowerCase().replaceAll(" ","_");
+  const box=document.createElement("div");
+
+  const alert=document.createElement("div");
+  alert.className="alert "+(
+    status==="missing_parts"||status==="missing"?"missing":"damaged"
+  );
+  alert.textContent=alert.classList.contains("missing")
+    ?"🧩 Missing Parts Detected"
+    :"🚨 Damaged Item Detected";
+  box.append(alert);
+
+  const info=document.createElement("div");
+  info.className="info";
+  addInfoLine(info,"Item",itemName);
+  addInfoLine(info,"Borrow Code",currentLog.borrow_code||"—");
+  addInfoLine(info,"Quantity",currentLog.quantity??"—");
+  addInfoLine(info,"Return Status",formatStatus(currentLog.return_status));
+  addInfoLine(info,"Condition Notes",currentLog.return_condition||"No condition notes provided");
+  addInfoLine(info,"Maintenance Status",formatStatus(currentLog.maintenance_status||"pending"));
+  box.append(info);
+
+  if(currentLog.return_proof){
+    const link=document.createElement("a");
+    link.href=currentLog.return_proof;
+    link.target="_blank";
+    link.rel="noopener noreferrer";
+
+    const img=document.createElement("img");
+    img.src=currentLog.return_proof;
+    img.className="proof";
+    img.alt="Returned item condition proof";
+    img.onerror=()=>{img.style.display="none";};
+    link.append(img);
+    box.append(link);
+  }
+
+  const form=document.createElement("form");
+  form.id="repairForm";
+
+  const label=document.createElement("label");
+  label.htmlFor="repairNotes";
+  label.textContent="Repair Details / Maintenance Notes";
+
+  const textarea=document.createElement("textarea");
+  textarea.id="repairNotes";
+  textarea.name="repair_notes";
+  textarea.placeholder="Describe the repairs completed, replacement parts, and other maintenance details...";
+  textarea.required=true;
+  textarea.maxLength=3000;
+  textarea.value=currentLog.repair_notes||"";
+
+  const button=document.createElement("button");
+  button.type="submit";
+  button.textContent="🛠 Confirm Repair";
+
+  form.append(label,textarea,button);
+  form.addEventListener("submit",submitRepair);
+
+  box.append(form);
+  content.replaceChildren(box);
+}
+
+async function submitRepair(event){
+  event.preventDefault();
+  if(submitting)return;
+
+  const notes=document.getElementById("repairNotes").value.trim();
+  if(!notes){
+    showMessage("Ilagay muna ang repair details.");
+    return;
+  }
+
+  submitting=true;
+  const button=event.currentTarget.querySelector("button");
+  button.disabled=true;
+  button.textContent="Saving repair...";
+
+  try{
+    const logRef=doc(db,"borrow_logs",logId);
+
+    await runTransaction(db,async transaction=>{
+      const snap=await transaction.get(logRef);
+
+      if(!snap.exists()){
+        throw new Error("Hindi na makita ang repair record.");
+      }
+
+      const log=snap.data();
+
+      if(String(log.user_id)!==currentUser.uid){
+        throw new Error("Wala kang permission na baguhin ang record na ito.");
+      }
+
+      if(!isRepairNeeded(log.return_status)){
+        throw new Error("Hindi na marked as damaged o missing parts ang item na ito.");
+      }
+
+      transaction.update(logRef,{
+        maintenance_status:"fixed",
+        return_status:"good",
+        repair_notes:notes,
+        repaired_by:currentUser.uid,
+        repaired_by_name:currentUser.displayName||currentUser.email||"Faculty",
+        repair_date:serverTimestamp()
+      });
+    });
+
+    showMessage("Repair record saved successfully.","success");
+    content.replaceChildren();
+
+    const result=document.createElement("div");
+    result.className="info";
+    result.textContent="✅ Item marked as repaired. ";
+    const back=document.createElement("a");
+    back.href="faculty_borrow_logs.html";
+    back.textContent="Return to Borrow Logs";
+    back.style.color="#81ecec";
+    back.style.fontWeight="bold";
+    result.append(back);
+    content.append(result);
+
+  }catch(error){
+    console.error("Repair update failed:",error);
+    showMessage(error.message||"Hindi na-save ang repair. Tingnan ang Firestore rules at subukang muli.");
+    button.disabled=false;
+    button.textContent="🛠 Confirm Repair";
+  }finally{
+    submitting=false;
+  }
+}
+
+onAuthStateChanged(auth,async user=>{
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  currentUser=user;
+
+  try{
+    await loadRecord();
+  }catch(error){
+    console.error("Repair page error:",error);
+    content.replaceChildren();
+    showMessage(error.message||"Hindi ma-load ang repair record.");
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Profile | PTC</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#07111f,#0f172a,#001f2f);min-height:100vh;padding:30px;color:white;overflow-x:hidden}
+.header{max-width:1400px;margin:auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px;margin-bottom:30px}
+.logo{font-size:42px;font-weight:bold}
+.nav{display:flex;gap:15px;flex-wrap:wrap}
+.nav a{padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:#ffffff14;backdrop-filter:blur(12px);border:1px solid #ffffff14;color:white;transition:.3s}
+.nav a:hover{background:#00cec9;color:#0f172a;transform:translateY(-2px)}
+.profile{max-width:1400px;margin:auto;background:#ffffff14;backdrop-filter:blur(18px);padding:35px;border-radius:35px;box-shadow:0 10px 40px #0006;margin-bottom:30px}
+.profile-top{display:flex;align-items:center;gap:30px;flex-wrap:wrap}
+.avatar{width:140px;height:140px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,#00b894,#00cec9);display:flex;justify-content:center;align-items:center;font-size:60px;font-weight:bold;box-shadow:0 10px 30px #0005}
+.info h1{font-size:42px;margin-bottom:10px;overflow-wrap:anywhere}
+.info p{font-size:17px;margin-bottom:10px;color:#ddd;overflow-wrap:anywhere}
+.badges{display:flex;gap:12px;flex-wrap:wrap;margin-top:15px}
+.badge{padding:10px 16px;border-radius:30px;font-size:13px;font-weight:bold;color:#07111f}
+.role{background:#74b9ff}
+.limit{background:#00b894;color:white}
+.damage{background:#ff7675;color:white}
+.stats{max-width:1400px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:30px}
+.stat{padding:25px;border-radius:25px;background:#ffffff14;backdrop-filter:blur(15px);border:1px solid #ffffff14;box-shadow:0 10px 35px #0005}
+.stat h3{font-size:16px;margin-bottom:10px;color:#81ecec}
+.stat p{font-size:40px;font-weight:bold;overflow-wrap:anywhere}
+.grid{max-width:1400px;margin:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,400px);gap:25px}
+.card{min-width:0;background:#ffffff14;backdrop-filter:blur(15px);padding:30px;border-radius:35px;box-shadow:0 10px 40px #0005}
+.card h2{font-size:30px;margin-bottom:20px}
+.info-box{padding:18px;border-radius:18px;background:#ffffff0d;margin-bottom:15px;font-size:16px;overflow-wrap:anywhere}
+.info-box b{color:#81ecec}
+.recent{padding:18px;border-radius:18px;background:#ffffff0d;margin-bottom:15px;overflow-wrap:anywhere}
+.recent h4{margin-bottom:8px;font-size:17px}
+.recent p{margin-top:8px;color:#ddd}
+.borrowed{color:#fdcb6e;font-weight:bold}
+.returned{color:#00ff88;font-weight:bold}
+.status-other{color:#81ecec;font-weight:bold}
+.empty{color:#bbb;padding:16px 0;line-height:1.6}
+.footer{text-align:center;margin-top:35px;color:#aaa;font-size:13px}
+.notice{display:none;max-width:1400px;margin:0 auto 20px;padding:15px;border-radius:12px;line-height:1.5;overflow-wrap:anywhere}
+.notice.show{display:block}
+.notice.error{background:#ffe2e2;color:#8a1e1e}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+@media(max-width:768px){body{padding:15px}.profile-top{flex-direction:column;text-align:center}.info h1{font-size:34px}.logo{font-size:32px}.profile{padding:25px}.nav{width:100%}.nav a{flex:1;text-align:center;padding:12px 10px}.card{padding:22px}.card h2{font-size:26px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+  <div class="logo">👤 Student Profile</div>
+  <nav class="nav">
+    <a href="student_dashboard.html">🏠 Dashboard</a>
+    <a href="request.html">📦 Borrow</a>
+    <a href="student_borrow_logs.html">📜 Logs</a>
+    <a href="logout.html">🚪 Logout</a>
+  </nav>
+</header>
+
+<div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+<section class="profile">
+  <div class="profile-top">
+    <div class="avatar" id="avatar">…</div>
+    <div class="info">
+      <h1 id="username">Loading profile…</h1>
+      <p>📧 <span id="email">—</span></p>
+      <p>🆔 Account ID: <span id="accountId">—</span></p>
+      <div class="badges">
+        <div class="badge role">🎓 <span id="role">—</span></div>
+        <div class="badge limit">📦 Limit: <span id="limitBadge">—</span></div>
+        <div class="badge damage">⚠ Strikes: <span id="strikeBadge">—</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <h3>📨 Total Requests</h3>
+    <p id="totalRequests">—</p>
+  </div>
+  <div class="stat">
+    <h3>📦 Active Borrowed</h3>
+    <p id="totalBorrowed">—</p>
+  </div>
+  <div class="stat">
+    <h3>✅ Returned Items</h3>
+    <p id="totalReturned">—</p>
+  </div>
+  <div class="stat">
+    <h3>⏳ Pending Requests</h3>
+    <p id="pendingRequests">—</p>
+  </div>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <h2>👤 Account Information</h2>
+
+    <div class="info-box"><b>Username:</b> <span id="accountUsername">—</span></div>
+    <div class="info-box"><b>Institutional Email:</b> <span id="accountEmail">—</span></div>
+    <div class="info-box"><b>Role:</b> <span id="accountRole">—</span></div>
+    <div class="info-box"><b>Current Borrowed:</b> <span id="currentBorrowed">—</span></div>
+    <div class="info-box"><b>Borrow Limit:</b> <span id="borrowLimit">—</span></div>
+    <div class="info-box"><b>Damage Strikes:</b> <span id="damageStrikes">—</span></div>
+  </div>
+
+  <div class="card">
+    <h2>📜 Recent Activity</h2>
+    <div id="recentLogs">
+      <p class="empty">Loading recent activity…</p>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  PTC Institutional Inventory System © <span id="year"></span>
+</footer>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  collection, doc, getDoc, getDocs, query, where
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+$("year").textContent = new Date().getFullYear();
+
+function showError(message) {
+  $("notice").textContent = message;
+  $("notice").className = "notice show error";
+}
+
+function display(id, value) {
+  $(id).textContent = value == null || value === "" ? "—" : String(value);
+}
+
+function getDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getItemId(log) {
+  return String(log.item_id ?? log.itemId ?? "");
+}
+
+function getUserId(log) {
+  return String(log.user_id ?? log.userId ?? log.uid ?? "");
+}
+
+function statusLabel(status) {
+  const value = String(status || "unknown").toLowerCase();
+  const span = document.createElement("span");
+
+  span.className =
+    value === "borrowed" ? "borrowed" :
+    value === "returned" ? "returned" : "status-other";
+
+  span.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+  return span;
+}
+
+function renderRecentLogs(logs, itemMap) {
+  const container = $("recentLogs");
+  container.replaceChildren();
+
+  if (!logs.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "Wala ka pang borrowing activity.";
+    container.appendChild(empty);
+    return;
+  }
+
+  logs.forEach(log => {
+    const card = document.createElement("div");
+    card.className = "recent";
+
+    const item = itemMap.get(getItemId(log));
+    const itemName =
+      log.item_name ||
+      log.itemName ||
+      item?.item_name ||
+      item?.itemName ||
+      item?.name ||
+      "Unknown item";
+
+    const heading = document.createElement("h4");
+    heading.textContent = "📦 " + itemName;
+    card.appendChild(heading);
+
+    const quantity = document.createElement("p");
+    quantity.textContent = "Quantity: " + (log.quantity ?? log.qty ?? "—");
+    card.appendChild(quantity);
+
+    const statusRow = document.createElement("p");
+    statusRow.append("Status: ");
+    statusRow.appendChild(statusLabel(log.status));
+    card.appendChild(statusRow);
+
+    const borrowDate = getDate(log.date_borrowed || log.dateBorrowed);
+    if (borrowDate) {
+      const dateRow = document.createElement("p");
+      dateRow.textContent = "Borrow date: " + borrowDate.toLocaleDateString();
+      card.appendChild(dateRow);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+async function loadProfile(user) {
+  const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+  if (!profileSnap.exists()) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  const profile = profileSnap.data();
+  const username = profile.username || user.displayName || "Student";
+  const email = profile.institutional_email || user.email || "No email";
+  const role = String(profile.role || "student");
+
+  display("username", username);
+  display("email", email);
+  display("accountId", profile.student_id || profile.user_id || user.uid);
+  display("role", role.charAt(0).toUpperCase() + role.slice(1));
+  display("limitBadge", profile.borrow_limit ?? 2);
+  display("strikeBadge", profile.damage_strikes ?? 0);
+
+  display("accountUsername", username);
+  display("accountEmail", email);
+  display("accountRole", role.charAt(0).toUpperCase() + role.slice(1));
+  display("currentBorrowed", profile.current_borrowed ?? 0);
+  display("borrowLimit", profile.borrow_limit ?? 2);
+  display("damageStrikes", profile.damage_strikes ?? 0);
+
+  $("avatar").textContent = username.trim().charAt(0).toUpperCase() || "?";
+
+  const requestsQuery = query(
+    collection(db, "requests"),
+    where("user_id", "==", user.uid)
+  );
+
+  const borrowedQuery = query(
+    collection(db, "borrow_logs"),
+    where("user_id", "==", user.uid),
+    where("status", "==", "borrowed")
+  );
+
+  const returnedQuery = query(
+    collection(db, "borrow_logs"),
+    where("user_id", "==", user.uid),
+    where("status", "==", "returned")
+  );
+
+  const [requestsSnap, borrowedSnap, returnedSnap] = await Promise.all([
+    getDocs(requestsQuery),
+    getDocs(borrowedQuery),
+    getDocs(returnedQuery)
+  ]);
+
+  display("totalRequests", requestsSnap.size);
+  display("totalBorrowed", borrowedSnap.size);
+  display("totalReturned", returnedSnap.size);
+
+  const pendingCount = requestsSnap.docs.filter(d =>
+    String(d.data().status || "").toLowerCase() === "pending"
+  ).length;
+
+  display("pendingRequests", pendingCount);
+
+  const recentLogs = [...borrowedSnap.docs, ...returnedSnap.docs]
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aDate = getDate(a.date_borrowed || a.dateBorrowed)?.getTime() || 0;
+      const bDate = getDate(b.date_borrowed || b.dateBorrowed)?.getTime() || 0;
+
+      if (aDate !== bDate) return bDate - aDate;
+
+      return String(b.log_id ?? b.id).localeCompare(String(a.log_id ?? a.id), undefined, {numeric:true});
+    })
+    .slice(0, 5);
+
+  const itemIds = [...new Set(recentLogs.map(getItemId).filter(Boolean))];
+  const itemMap = new Map();
+
+  await Promise.all(itemIds.map(async itemId => {
+    const itemSnap = await getDoc(doc(db, "items", itemId));
+    if (itemSnap.exists()) itemMap.set(itemId, itemSnap.data());
+  }));
+
+  renderRecentLogs(recentLogs, itemMap);
+}
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  try {
+    await loadProfile(user);
+  } catch (error) {
+    console.error("Student profile error:", error);
+    showError(
+      "Hindi ma-load ang profile. Suriin ang Firestore Rules at data permissions. " +
+      (error.code || "") + " " + (error.message || "")
+    );
+    $("recentLogs").textContent = "Hindi ma-load ang recent activity.";
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,677 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#38bdf8">
+  <title>Login | Kleensure</title>
+
+  <style>
+    :root {
+      --sky: #38bdf8;
+      --sky-light: #7dd3fc;
+      --sky-dark: #0284c7;
+      --navy: #082f49;
+      --white: #ffffff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+      position: relative;
+      background: #071827;
+      color: var(--white);
+    }
+
+    .bg {
+      position: fixed;
+      inset: -20px;
+      background:
+        linear-gradient(
+          135deg,
+          rgba(3, 20, 38, .91),
+          rgba(2, 132, 199, .45)
+        ),
+        url("kleensure.jpg") center / cover no-repeat;
+      filter: blur(5px);
+      z-index: -3;
+    }
+
+    .ambient {
+      position: fixed;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      filter: blur(110px);
+      opacity: .28;
+      pointer-events: none;
+      z-index: -2;
+    }
+
+    .ambient.one {
+      top: -150px;
+      left: -120px;
+      background: #38bdf8;
+      animation: floatOne 8s ease-in-out infinite;
+    }
+
+    .ambient.two {
+      bottom: -170px;
+      right: -120px;
+      background: #0284c7;
+      animation: floatTwo 10s ease-in-out infinite;
+    }
+
+    .login-container {
+      width: 440px;
+      max-width: 100%;
+      overflow: hidden;
+      border: 1px solid rgba(186, 230, 253, .35);
+      border-radius: 28px;
+      background: rgba(8, 35, 57, .74);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      box-shadow: 0 25px 80px rgba(0, 0, 0, .42);
+      animation: appear .65s ease both;
+    }
+
+    .top-banner {
+      padding: 32px 20px 26px;
+      text-align: center;
+      background:
+        linear-gradient(
+          135deg,
+          rgba(2, 132, 199, .92),
+          rgba(56, 189, 248, .64)
+        );
+      border-bottom: 1px solid rgba(255, 255, 255, .2);
+    }
+
+    .logo-circle {
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 26px;
+      background: rgba(255, 255, 255, .17);
+      border: 1px solid rgba(255, 255, 255, .45);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .15);
+      font-size: 43px;
+    }
+
+    .brand {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+
+    .brand-tagline {
+      margin-top: 8px;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #e0f2fe;
+    }
+
+    .login-content {
+      padding: 30px 34px 32px;
+    }
+
+    .login-content h1 {
+      font-size: 29px;
+      text-align: center;
+      margin-bottom: 10px;
+      letter-spacing: -.5px;
+    }
+
+    .subtitle {
+      color: #cbdff0;
+      font-size: 14px;
+      line-height: 1.7;
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .field {
+      margin-bottom: 17px;
+      text-align: left;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 8px;
+      color: #e0f2fe;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 15px;
+      border: 1px solid rgba(186, 230, 253, .24);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, .96);
+      color: #082f49;
+      font-size: 15px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .field input::placeholder {
+      color: #7890a5;
+    }
+
+    .field input:focus {
+      border-color: var(--sky);
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, .2);
+    }
+
+    #password {
+      padding-right: 68px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 9px;
+      transform: translateY(-50%);
+      padding: 8px;
+      border: 0;
+      background: transparent;
+      color: #0369a1;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .login-button {
+      width: 100%;
+      min-height: 51px;
+      padding: 15px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 7px;
+      box-shadow: 0 8px 22px rgba(2, 132, 199, .25);
+      transition: transform .2s, box-shadow .2s, opacity .2s;
+    }
+
+    .login-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 26px rgba(56, 189, 248, .32);
+    }
+
+    .login-button:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+
+    #message {
+      display: none;
+      margin-top: 17px;
+      padding: 12px 13px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    #message.error {
+      display: block;
+      color: #fecaca;
+      background: rgba(185, 28, 28, .24);
+      border: 1px solid rgba(252, 165, 165, .25);
+    }
+
+    #message.success {
+      display: block;
+      color: #bbf7d0;
+      background: rgba(22, 163, 74, .19);
+      border: 1px solid rgba(134, 239, 172, .25);
+    }
+
+    #message.info {
+      display: block;
+      color: #bae6fd;
+      background: rgba(2, 132, 199, .2);
+      border: 1px solid rgba(125, 211, 252, .25);
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 23px;
+      color: #cbdff0;
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    .login-link a {
+      color: #7dd3fc;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    .login-link a:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    .footer-text {
+      margin-top: 25px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(186, 230, 253, .14);
+      color: #a8c4d9;
+      font-size: 11px;
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .secure-note {
+      margin-top: 12px;
+      text-align: center;
+      color: #9cc9e3;
+      font-size: 11px;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateY(22px) scale(.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes floatOne {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(25px, 20px); }
+    }
+
+    @keyframes floatTwo {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(-25px, -20px); }
+    }
+
+    @media (max-width: 480px) {
+      .login-container { border-radius: 23px; }
+      .top-banner { padding: 27px 18px 23px; }
+      .logo-circle {
+        width: 76px;
+        height: 76px;
+        font-size: 37px;
+      }
+      .brand { font-size: 27px; }
+      .login-content { padding: 26px 22px 27px; }
+      .login-content h1 { font-size: 26px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg"></div>
+  <div class="ambient one"></div>
+  <div class="ambient two"></div>
+
+  <main class="login-container">
+    <header class="top-banner">
+      <div class="logo-circle" aria-hidden="true">🧹</div>
+      <div class="brand">KLEENSURE</div>
+      <p class="brand-tagline">
+        Equipment &amp; Inventory Management
+      </p>
+    </header>
+
+    <section class="login-content">
+      <h1>Welcome Back</h1>
+      <p class="subtitle">
+        Sign in to manage cleaning equipment, supplies,
+        borrowing batches, and returns.
+      </p>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="Enter your registered email"
+            autocomplete="username"
+            maxlength="254"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            >
+            <button
+              class="toggle-password"
+              id="togglePassword"
+              type="button"
+              aria-label="Show password"
+            >Show</button>
+          </div>
+        </div>
+
+        <button
+          class="login-button"
+          type="submit"
+          id="loginButton"
+        >
+          Sign In →
+        </button>
+      </form>
+
+      <div id="message" role="alert" aria-live="polite"></div>
+
+      <div class="login-link">
+        Don't have an account?<br>
+        <a href="register.html">Create an account</a>
+      </div>
+
+      <p class="secure-note">
+        🔒 Secure sign-in powered by Firebase Authentication
+      </p>
+
+      <footer class="footer-text">
+        Kleensure Inventory System © 2026<br>
+        Cleaning smarter. Managing better.
+      </footer>
+    </section>
+  </main>
+
+  <script type="module">
+    import {
+      initializeApp,
+      getApp,
+      getApps
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+    import {
+      getFirestore,
+      doc,
+      getDoc
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCik-MVlxK6cshGy87dXOi10a0_c52cO1w",
+      authDomain: "inventory-4f2b5.firebaseapp.com",
+      projectId: "inventory-4f2b5",
+      storageBucket: "inventory-4f2b5.firebasestorage.app",
+      messagingSenderId: "185805306294",
+      appId: "1:185805306294:web:d674bd3c32b9994fa46917",
+      measurementId: "G-5KCN8KL8ET"
+    };
+
+    const app = getApps().length
+      ? getApp()
+      : initializeApp(firebaseConfig);
+
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const form = document.getElementById("loginForm");
+    const button = document.getElementById("loginButton");
+    const message = document.getElementById("message");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const togglePassword = document.getElementById("togglePassword");
+
+    function showMessage(text, type = "error") {
+      message.textContent = text;
+      message.className = type;
+    }
+
+    function normalizedRole(value) {
+      return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
+    }
+
+    function getDashboard(role) {
+      const roleRoutes = {
+        // Admin
+        admin: "admin/dashboard.html",
+        administrator: "admin/dashboard.html",
+        super_admin: "admin/dashboard.html",
+        superadmin: "admin/dashboard.html",
+
+        // Team Leader
+        team_leader: "teamleader/teamleader_dashboard.html",
+        teamleader: "teamleader/teamleader_dashboard.html",
+        lead_man: "teamleader/teamleader_dashboard.html",
+        leadman: "teamleader/teamleader_dashboard.html",
+
+        // Manager / Inventory Officer
+        manager: "admin/manager_dashboard.html",
+        officer: "admin/manager_dashboard.html",
+        inventory_officer: "admin/manager_dashboard.html",
+        inventory_manager: "admin/manager_dashboard.html"
+      };
+
+      return roleRoutes[normalizedRole(role)] || null;
+    }
+
+    togglePassword.addEventListener("click", () => {
+      const showing = passwordInput.type === "text";
+
+      passwordInput.type = showing ? "password" : "text";
+      togglePassword.textContent = showing ? "Show" : "Hide";
+      togglePassword.setAttribute(
+        "aria-label",
+        showing ? "Show password" : "Hide password"
+      );
+    });
+
+    function getErrorMessage(error) {
+      switch (error?.code) {
+        case "auth/invalid-email":
+          return "Please enter a valid email address.";
+
+        case "auth/invalid-credential":
+        case "auth/wrong-password":
+        case "auth/user-not-found":
+          return "Incorrect email or password.";
+
+        case "auth/user-disabled":
+          return "This account has been disabled. Contact your administrator.";
+
+        case "auth/too-many-requests":
+          return "Too many login attempts. Please try again later.";
+
+        case "auth/network-request-failed":
+          return "Network error. Check your internet connection.";
+
+        case "permission-denied":
+        case "firestore/permission-denied":
+          return "Access to your profile was denied by Firestore Rules. Ask the administrator to check users/{uid} permissions.";
+
+        default:
+          console.error("Login error details:", error);
+          return "Login failed. Please check your connection and Firebase configuration.";
+      }
+    }
+
+    function getProfileRole(profile) {
+      return (
+        profile.role ??
+        profile.user_role ??
+        profile.userRole ??
+        profile.account_type ??
+        profile.accountType ??
+        profile.position ??
+        ""
+      );
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      button.disabled = true;
+      button.textContent = "Signing in...";
+      message.className = "";
+      message.textContent = "";
+
+      let signedIn = false;
+
+      try {
+        // 1. Authenticate the account.
+        const result = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        signedIn = true;
+
+        // 2. Read the matching Firestore user profile.
+        const profileRef = doc(db, "users", result.user.uid);
+        const profileSnapshot = await getDoc(profileRef);
+
+        if (!profileSnapshot.exists()) {
+          await signOut(auth);
+          signedIn = false;
+
+          showMessage(
+            "Your account is missing its Kleensure profile. " +
+            "Contact the administrator to configure users/" +
+            result.user.uid + "."
+          );
+          return;
+        }
+
+        const profile = profileSnapshot.data();
+
+        // 3. Check account status, if the field exists.
+        const accountStatus = normalizedRole(
+          profile.account_status ?? profile.accountStatus ?? "active"
+        );
+
+        if (["blocked", "disabled", "suspended", "inactive"].includes(accountStatus)) {
+          await signOut(auth);
+          signedIn = false;
+
+          showMessage(
+            "Your account is currently " + accountStatus +
+            ". Contact the administrator."
+          );
+          return;
+        }
+
+        // 4. Resolve the correct destination from the Firestore role.
+        const role = getProfileRole(profile);
+        const dashboard = getDashboard(role);
+
+        if (!dashboard) {
+          await signOut(auth);
+          signedIn = false;
+
+          showMessage(
+            `No dashboard is configured for role "${role || "unassigned"}". ` +
+            "Contact the administrator."
+          );
+          return;
+        }
+
+        // 5. Store convenience data for the UI only.
+        // Never use sessionStorage as proof of authorization.
+        try {
+          sessionStorage.setItem(
+            "inventoryUser",
+            JSON.stringify({
+              uid: result.user.uid,
+              username:
+                profile.username ||
+                profile.full_name ||
+                profile.fullName ||
+                result.user.displayName ||
+                email,
+              email: result.user.email || email,
+              role: normalizedRole(role)
+            })
+          );
+        } catch (storageError) {
+          console.warn("Could not store UI session data:", storageError);
+        }
+
+        showMessage(
+          "Login successful! Opening your designated dashboard...",
+          "success"
+        );
+
+        // 6. Redirect to the dashboard assigned to this role.
+        window.location.replace(
+          new URL(dashboard, window.location.href).href
+        );
+
+      } catch (error) {
+        console.error("Kleensure login error:", error);
+
+        if (signedIn) {
+          try {
+            await signOut(auth);
+          } catch (signOutError) {
+            console.error("Sign-out error:", signOutError);
+          }
+        }
+
+        showMessage(getErrorMessage(error));
+
+      } finally {
+        button.disabled = false;
+        button.textContent = "Sign In →";
+      }
+    });
+  </script>
+</body>
+</html>

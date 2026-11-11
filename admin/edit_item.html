@@ -1,0 +1,599 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Inventory | PTC</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  background: #101820;
+}
+.bg {
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(rgba(0,0,0,.62), rgba(0,0,0,.65)),
+    url('https://images.unsplash.com/photo-1581091215367-59ab6b4c9b4c')
+    no-repeat center center / cover;
+  filter: blur(7px);
+  transform: scale(1.1);
+  z-index: -2;
+}
+.glow, .glow2 {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(130px);
+  opacity: .22;
+  pointer-events: none;
+  z-index: -1;
+}
+.glow {
+  width: 400px;
+  height: 400px;
+  background: #00cec9;
+  top: -120px;
+  left: -100px;
+  animation: floatGlow 6s ease-in-out infinite;
+}
+.glow2 {
+  width: 400px;
+  height: 400px;
+  background: #6c5ce7;
+  right: -100px;
+  bottom: -100px;
+  animation: floatGlow2 8s ease-in-out infinite;
+}
+.form-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 30px 15px;
+}
+.form-box {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(255,255,255,.14);
+  backdrop-filter: blur(17px);
+  -webkit-backdrop-filter: blur(17px);
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.35);
+  animation: popUp .65s ease;
+}
+.logo-circle {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  margin: 0 auto 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 38px;
+  color: white;
+  border: 2px solid rgba(255,255,255,.3);
+  box-shadow: 0 5px 15px rgba(0,0,0,.3);
+}
+h2 {
+  text-align: center;
+  color: white;
+  font-size: 30px;
+  margin-bottom: 9px;
+}
+.subtitle {
+  text-align: center;
+  color: #eee;
+  font-size: 14px;
+  margin-bottom: 23px;
+  line-height: 1.5;
+}
+label {
+  display: block;
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+  margin: 16px 0 7px;
+}
+.form-box input {
+  width: 100%;
+  min-height: 46px;
+  padding: 13px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: rgba(255,255,255,.95);
+  color: #172033;
+  font-size: 15px;
+  transition: .2s;
+}
+.form-box input:focus {
+  outline: none;
+  border-color: #00cec9;
+  box-shadow: 0 0 14px rgba(0,206,201,.5);
+}
+.form-box input[type="file"] {
+  background: rgba(0,0,0,.2);
+  border: 1px dashed rgba(255,255,255,.5);
+  color: white;
+  font-size: 12px;
+}
+.preview {
+  margin-top: 18px;
+  text-align: center;
+  color: white;
+  font-size: 13px;
+}
+.preview img {
+  width: 155px;
+  height: 155px;
+  max-width: 100%;
+  object-fit: cover;
+  border-radius: 19px;
+  border: 4px solid #00cec9;
+  box-shadow: 0 8px 20px rgba(0,0,0,.3);
+  transition: .25s;
+}
+.preview img:hover { transform: scale(1.04); }
+.preview-placeholder {
+  width: 155px;
+  height: 155px;
+  max-width: 100%;
+  margin: auto;
+  border-radius: 19px;
+  border: 2px dashed rgba(255,255,255,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #eee;
+  background: rgba(255,255,255,.08);
+}
+.image-hint {
+  color: #eee;
+  font-size: 11px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 13px;
+  background: linear-gradient(135deg,#00b894,#00cec9);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: .25s;
+}
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.3);
+}
+button:disabled { opacity: .55; cursor: not-allowed; }
+.back-btn {
+  display: block;
+  text-align: center;
+  margin-top: 19px;
+  color: #55efc4;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 14px;
+}
+.back-btn:hover { text-decoration: underline; }
+.message {
+  display: none;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.message.show { display: block; }
+.message.error {
+  background: #ffe9e9;
+  color: #912525;
+}
+.message.success {
+  background: #e4fff0;
+  color: #116b42;
+}
+.message.info {
+  background: #e8f2ff;
+  color: #214d91;
+}
+@keyframes popUp {
+  from { opacity: 0; transform: translateY(25px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes floatGlow {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-30px); }
+}
+@keyframes floatGlow2 {
+  0%,100% { transform: translateX(0); }
+  50% { transform: translateX(-30px); }
+}
+@media(max-width:500px) {
+  .form-box { padding: 24px 19px; border-radius: 22px; }
+  h2 { font-size: 26px; }
+}
+</style>
+</head>
+
+<body>
+<div class="bg"></div>
+<div class="glow"></div>
+<div class="glow2"></div>
+
+<main class="form-container">
+  <section class="form-box">
+    <div class="logo-circle">✏️</div>
+    <h2>Edit Inventory</h2>
+    <p class="subtitle">Update item information</p>
+
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+
+    <form id="editForm">
+      <label for="item_name">Item Name</label>
+      <input id="item_name" type="text" maxlength="150"
+             placeholder="Enter item name" required>
+
+      <label for="quantity">Quantity</label>
+      <input id="quantity" type="number" min="0" step="1"
+             placeholder="Enter quantity" required>
+
+      <label for="date_added">Date Added</label>
+      <input id="date_added" type="date" required>
+
+      <label for="imageInput">Change Item Image (optional)</label>
+      <input id="imageInput" type="file"
+             accept=".jpg,.jpeg,.png,.gif,.webp,.jfif,image/*">
+
+      <div class="preview">
+        <div id="imagePreview">
+          <div class="preview-placeholder">No Image</div>
+        </div>
+        <div class="image-hint">
+          Leave image selection empty to keep the current image.
+          Large images are resized before saving.
+        </div>
+      </div>
+
+      <button id="saveButton" type="submit">💾 Update Item</button>
+    </form>
+
+    <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
+  </section>
+</main>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+
+import { onAuthStateChanged } from
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  doc,
+  getDoc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+
+const params = new URLSearchParams(window.location.search);
+const itemId = params.get("id");
+
+let currentUser = null;
+let originalItem = null;
+let originalImage = "";
+let selectedImageData = null;
+let busy = false;
+
+const allowedRoles = [
+  "admin", "administrator", "manager", "officer",
+  "teacher", "staff", "faculty"
+];
+
+function normalizeRole(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+}
+
+function showMessage(text, type = "info") {
+  const el = $("message");
+  el.textContent = text;
+  el.className = "message show " + type;
+}
+
+function showImage(src) {
+  const holder = $("imagePreview");
+  holder.replaceChildren();
+
+  if (!src) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "preview-placeholder";
+    placeholder.textContent = "No Image";
+    holder.appendChild(placeholder);
+    return;
+  }
+
+  const img = document.createElement("img");
+  img.alt = "Item image preview";
+  img.src = src;
+
+  img.onerror = () => {
+    holder.replaceChildren();
+    const placeholder = document.createElement("div");
+    placeholder.className = "preview-placeholder";
+    placeholder.textContent = "Image unavailable";
+    holder.appendChild(placeholder);
+  };
+
+  holder.appendChild(img);
+}
+
+function dateForInput(value) {
+  if (!value) return new Date().toISOString().slice(0, 10);
+
+  if (typeof value === "string") {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+
+  if (value?.toDate) {
+    return value.toDate().toISOString().slice(0, 10);
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function loadItem() {
+  if (!itemId) {
+    showMessage("Missing item ID. Open this page using edit_item.html?id=ITEM_ID.", "error");
+    $("saveButton").disabled = true;
+    return;
+  }
+
+  const itemRef = doc(db, "items", itemId);
+  const snapshot = await getDoc(itemRef);
+
+  if (!snapshot.exists()) {
+    showMessage("Item not found in the Firestore items collection.", "error");
+    $("saveButton").disabled = true;
+    return;
+  }
+
+  originalItem = snapshot.data();
+  originalImage = originalItem.image || "";
+
+  $("item_name").value =
+    originalItem.item_name || originalItem.itemName ||
+    originalItem.name || "";
+
+  $("quantity").value =
+    Number(originalItem.quantity ?? originalItem.stock ?? 0);
+
+  $("date_added").value = dateForInput(
+    originalItem.created_at || originalItem.date_added ||
+    originalItem.dateAdded || originalItem.createdAt
+  );
+
+  showImage(originalImage);
+}
+
+async function compressImage(file) {
+  const allowed = ["jpg", "jpeg", "png", "gif", "webp", "jfif"];
+  const ext = file.name.split(".").pop().toLowerCase();
+
+  if (!allowed.includes(ext)) {
+    throw new Error("Invalid image type. Use JPG, JPEG, PNG, GIF, WEBP, or JFIF.");
+  }
+
+  if (!file.type.startsWith("image/")) {
+    throw new Error("The selected file is not recognized as an image.");
+  }
+
+  if (file.size > 12 * 1024 * 1024) {
+    throw new Error("Image is too large. Choose an image under 12 MB.");
+  }
+
+  // GIF animation is not preserved by canvas compression.
+  if (ext === "gif") {
+    throw new Error("Animated GIF is not supported for compressed storage. Please choose JPG, PNG, or WEBP.");
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = new Image();
+    image.src = objectUrl;
+
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("Could not open the selected image."));
+    });
+
+    const maxSide = 900;
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image processing is unavailable in this browser.");
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    let quality = 0.78;
+    let dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+    // Keep the encoded image reasonably small for a Firestore document.
+    while (dataUrl.length > 650000 && quality > 0.35) {
+      quality -= 0.1;
+      dataUrl = canvas.toDataURL("image/jpeg", quality);
+    }
+
+    if (dataUrl.length > 750000) {
+      throw new Error("The image is still too large after compression. Choose a smaller image.");
+    }
+
+    return dataUrl;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+$("imageInput").addEventListener("change", async event => {
+  const file = event.target.files?.[0];
+
+  selectedImageData = null;
+
+  if (!file) {
+    showImage(originalImage);
+    return;
+  }
+
+  try {
+    showMessage("Preparing image preview…", "info");
+    selectedImageData = await compressImage(file);
+    showImage(selectedImageData);
+    showMessage("Image ready. Save the form to apply the changes.", "success");
+  } catch (error) {
+    event.target.value = "";
+    selectedImageData = null;
+    showImage(originalImage);
+    showMessage(error.message || "Could not process image.", "error");
+  }
+});
+
+$("editForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (busy || !currentUser || !originalItem || !itemId) return;
+
+  const name = $("item_name").value.trim();
+  const quantityText = $("quantity").value;
+  const quantity = Number(quantityText);
+  const dateAdded = $("date_added").value;
+
+  if (!name) {
+    showMessage("Item name is required.", "error");
+    return;
+  }
+
+  if (quantityText === "" || !Number.isInteger(quantity) || quantity < 0) {
+    showMessage("Quantity must be a whole number and cannot be negative.", "error");
+    return;
+  }
+
+  if (!dateAdded || !/^\d{4}-\d{2}-\d{2}$/.test(dateAdded)) {
+    showMessage("Please select a valid date added.", "error");
+    return;
+  }
+
+  busy = true;
+  $("saveButton").disabled = true;
+  $("saveButton").textContent = "Saving changes…";
+
+  try {
+    const updates = {
+      item_name: name,
+      quantity,
+      created_at: dateAdded,
+      image: selectedImageData ?? originalImage
+    };
+
+    await updateDoc(doc(db, "items", itemId), updates);
+
+    showMessage("Item updated successfully.", "success");
+
+    // Redirect after success; the database update must complete first.
+    setTimeout(() => {
+      window.location.href = "dashboard.html?updated=1";
+    }, 900);
+  } catch (error) {
+    console.error("Update item failed:", error);
+
+    let message = error.message || "Unknown error";
+
+    if (error.code === "permission-denied") {
+      message = "Permission denied by Firestore Rules. Confirm that your account is authorized to edit inventory.";
+    } else if (error.code === "not-found") {
+      message = "This item no longer exists.";
+    }
+
+    showMessage("Could not update item: " + message, "error");
+  } finally {
+    busy = false;
+    $("saveButton").disabled = false;
+    $("saveButton").textContent = "💾 Update Item";
+  }
+});
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.href = "../login.html";
+    return;
+  }
+
+  currentUser = user;
+
+  try {
+    const profileSnapshot = await getDoc(doc(db, "users", user.uid));
+
+    if (!profileSnapshot.exists()) {
+      showMessage("User profile not found. Contact the system administrator.", "error");
+      $("saveButton").disabled = true;
+      return;
+    }
+
+    const profile = profileSnapshot.data();
+    const role = normalizeRole(profile.role);
+
+    if (!allowedRoles.includes(role)) {
+      showMessage("Access denied. Only authorized Admin or Manager / Officer accounts can edit inventory.", "error");
+      $("saveButton").disabled = true;
+      return;
+    }
+
+    await loadItem();
+  } catch (error) {
+    console.error("Page initialization failed:", error);
+    showMessage(
+      "Could not load the item or account. " +
+      (error.code || error.message || "Check your Firestore Rules."),
+      "error"
+    );
+    $("saveButton").disabled = true;
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approve Borrow Request</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{margin:0;min-height:100vh;padding:22px;color:white;background:linear-gradient(135deg,#07111f,#0f172a,#00313b)}
+main{max-width:650px;margin:35px auto;padding:28px;background:#ffffff12;border:1px solid #ffffff20;border-radius:24px;box-shadow:0 12px 35px #0005}
+h1{font-size:clamp(25px,5vw,35px)}
+.info{padding:18px;background:#ffffff0c;border-radius:15px;line-height:2;overflow-wrap:anywhere}
+.info b{color:#81ecec}
+button,.back{display:block;width:100%;padding:15px;margin-top:18px;border:0;border-radius:12px;font-size:16px;font-weight:bold;text-align:center;text-decoration:none;cursor:pointer}
+button{background:linear-gradient(135deg,#00b894,#55efc4);color:#07111f}
+button:disabled{opacity:.55;cursor:wait}
+.back{background:#ffffff15;color:white}
+#message{display:none;padding:13px;margin:16px 0;border-radius:10px;overflow-wrap:anywhere}
+#message.show{display:block}
+.error{background:#ff475733}
+.success{background:#00b89430}
+</style>
+</head>
+<body>
+<main>
+  <h1>📦 Approve Borrow Request</h1>
+  <p>PTC Institutional Inventory System</p>
+  <div id="message" role="status"></div>
+  <div id="details">Checking login and loading request...</div>
+  <button id="approveBtn" disabled>✓ Approve Borrow</button>
+  <a class="back" href="check_request.html">← Back to Requests</a>
+</main>
+
+<script type="module">
+import { initializeApp } from
+  "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, runTransaction,
+  collection, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCik-MVlxK6cshGy87dXOi10a0_c52cO1w",
+  authDomain: "inventory-4f2b5.firebaseapp.com",
+  projectId: "inventory-4f2b5",
+  storageBucket: "inventory-4f2b5.firebasestorage.app",
+  messagingSenderId: "185805306294",
+  appId: "1:185805306294:web:d674bd3c32b9994fa46917",
+  measurementId: "G-5KCN8KL8ET"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const details = document.getElementById("details");
+const message = document.getElementById("message");
+const approveBtn = document.getElementById("approveBtn");
+const requestId = new URLSearchParams(location.search).get("id");
+
+let currentUser = null;
+let requestData = null;
+let authorized = false;
+let busy = false;
+
+function notify(text, type = "error") {
+  message.textContent = text;
+  message.className = "show " + type;
+}
+
+function esc(value = "") {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  })[c]);
+}
+
+function fail(text) {
+  details.textContent = text;
+  approveBtn.disabled = true;
+}
+
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+
+  if (!user) {
+    location.replace("../login.html");
+    return;
+  }
+
+  if (!requestId) {
+    fail("Request ID missing.");
+    return;
+  }
+
+  try {
+    // Verify staff role from Firestore user profile.
+    const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+    if (!profileSnap.exists()) {
+      fail("User profile not found.");
+      return;
+    }
+
+    const profile = profileSnap.data();
+    const role = String(profile.role || "").toLowerCase();
+
+    if (!["admin", "faculty"].includes(role) ||
+        profile.account_status === "blocked") {
+      fail("Only authorized admin or faculty accounts may approve borrowing.");
+      setTimeout(() => location.replace("../login.html"), 1500);
+      return;
+    }
+
+    const requestSnap = await getDoc(doc(db, "requests", requestId));
+
+    if (!requestSnap.exists()) {
+      fail("Request not found.");
+      return;
+    }
+
+    requestData = requestSnap.data();
+
+    if (!requestData.user_id || !requestData.item_id) {
+      fail("Request is missing user_id or item_id.");
+      return;
+    }
+
+    const [itemSnap, borrowerSnap] = await Promise.all([
+      getDoc(doc(db, "items", String(requestData.item_id))),
+      getDoc(doc(db, "users", String(requestData.user_id)))
+    ]);
+
+    if (!itemSnap.exists() || !borrowerSnap.exists()) {
+      fail("Item or borrower profile not found.");
+      return;
+    }
+
+    const item = itemSnap.data();
+    const borrower = borrowerSnap.data();
+    const quantity = Number(requestData.quantity);
+    const stock = Number(item.quantity);
+
+    details.innerHTML = `
+      <div class="info">
+        <b>Request ID:</b> ${esc(requestId)}<br>
+        <b>Borrower:</b> ${esc(requestData.borrower_name || borrower.username || "")}<br>
+        <b>Email:</b> ${esc(requestData.institutional_email || borrower.institutional_email || "")}<br>
+        <b>Role:</b> ${esc(requestData.borrower_role || borrower.role || "")}<br>
+        <b>Item:</b> ${esc(item.item_name || "Unknown item")}<br>
+        <b>Available Stock:</b> ${Number.isFinite(stock) ? stock : "Invalid"}<br>
+        <b>Requested Quantity:</b> ${Number.isFinite(quantity) ? quantity : "Invalid"}<br>
+        <b>Status:</b> ${esc(requestData.status || "pending")}
+      </div>`;
+
+    if (requestData.status &&
+        String(requestData.status).toLowerCase() !== "pending") {
+      notify("This request is not pending and cannot be approved.");
+      return;
+    }
+
+    if (!Number.isSafeInteger(quantity) || quantity < 1 ||
+        !Number.isSafeInteger(stock) || stock < quantity) {
+      notify("Not enough stock or invalid quantity. No changes made.");
+      return;
+    }
+
+    authorized = true;
+    approveBtn.disabled = false;
+
+  } catch (error) {
+    console.error(error);
+    fail(error.code === "permission-denied"
+      ? "Access denied. Check Firebase security rules."
+      : "Unable to load request: " + (error.message || "Unknown error"));
+  }
+});
+
+approveBtn.addEventListener("click", async () => {
+  if (!authorized || !currentUser || busy) return;
+
+  if (!confirm("Approve this borrow request, deduct stock, and delete the request?")) {
+    return;
+  }
+
+  busy = true;
+  approveBtn.disabled = true;
+  approveBtn.textContent = "Processing...";
+
+  try {
+    // Verify current staff role again before processing.
+    const profileSnap = await getDoc(doc(db, "users", currentUser.uid));
+    if (!profileSnap.exists()) throw new Error("Staff profile not found.");
+
+    const profile = profileSnap.data();
+    const role = String(profile.role || "").toLowerCase();
+
+    if (!["admin", "faculty"].includes(role) ||
+        profile.account_status === "blocked") {
+      throw new Error("You are not authorized to approve this request.");
+    }
+
+    const requestRef = doc(db, "requests", requestId);
+    const itemRef = doc(db, "items", String(requestData.item_id));
+    const userRef = doc(db, "users", String(requestData.user_id));
+    const logRef = doc(collection(db, "borrow_logs"));
+
+    await runTransaction(db, async transaction => {
+      // Read all relevant records before any writes.
+      const [reqSnap, itemSnap, userSnap] = await Promise.all([
+        transaction.get(requestRef),
+        transaction.get(itemRef),
+        transaction.get(userRef)
+      ]);
+
+      if (!reqSnap.exists()) throw new Error("Request no longer exists.");
+      if (!itemSnap.exists()) throw new Error("Inventory item not found.");
+      if (!userSnap.exists()) throw new Error("Borrower not found.");
+
+      const req = reqSnap.data();
+      const item = itemSnap.data();
+      const borrower = userSnap.data();
+
+      if (req.status &&
+          String(req.status).toLowerCase() !== "pending") {
+        throw new Error("This request has already been processed.");
+      }
+
+      const quantity = Number(req.quantity);
+      const stock = Number(item.quantity);
+      const currentBorrowed = Number(borrower.current_borrowed || 0);
+
+      if (!Number.isSafeInteger(quantity) || quantity < 1 ||
+          !Number.isSafeInteger(stock) || stock < quantity) {
+        throw new Error("Not enough stock or invalid quantity. No changes made.");
+      }
+
+      if (!Number.isSafeInteger(currentBorrowed) || currentBorrowed < 0) {
+        throw new Error("Invalid current_borrowed value.");
+      }
+
+      transaction.update(itemRef, {
+        quantity: stock - quantity
+      });
+
+      transaction.update(userRef, {
+        current_borrowed: currentBorrowed + quantity
+      });
+
+      // Preserve the borrower's details from the request, with profile fallback.
+      transaction.set(logRef, {
+        item_id: req.item_id,
+        borrower_name: req.borrower_name || borrower.username || "",
+        institutional_email:
+          req.institutional_email || borrower.institutional_email || "",
+        borrower_role: req.borrower_role || borrower.role || "",
+        quantity,
+        proof_borrow: req.proof_borrow || "",
+        borrow_date: serverTimestamp(),
+        status: "borrowed",
+        user_id: req.user_id,
+        approved_by: currentUser.uid,
+        createdAt: serverTimestamp()
+      });
+
+      // Original PHP deletes the request after creating the borrow log.
+      transaction.delete(requestRef);
+    });
+
+    notify("Borrow approved successfully! Redirecting...", "success");
+    approveBtn.textContent = "✓ Approved";
+
+    setTimeout(() => {
+      location.href = "check_request.html";
+    }, 1300);
+
+  } catch (error) {
+    console.error(error);
+    notify(error.code === "permission-denied"
+      ? "Permission denied. Verify Firestore security rules."
+      : (error.message || "Approval failed. Please try again."));
+    approveBtn.disabled = false;
+    approveBtn.textContent = "✓ Approve Borrow";
+  } finally {
+    busy = false;
+  }
+});
+</script>
+</body>
+</html>
+```

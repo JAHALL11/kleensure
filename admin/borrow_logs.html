@@ -1,0 +1,1445 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0e7490">
+  <title>Kleensure | Borrowing Monitor</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --navy:#102b46;
+      --blue:#1677d2;
+      --cyan:#0e9fbd;
+      --bg:#f3f8fc;
+      --text:#15283d;
+      --muted:#687b8f;
+      --border:#dfe9f1;
+      --green:#16835d;
+      --red:#c23e4b;
+      --orange:#ad650a;
+    }
+
+    * { box-sizing:border-box; }
+
+    body {
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,Arial,sans-serif;
+    }
+
+    button,input,select { font:inherit; }
+
+    .topbar {
+      background:linear-gradient(120deg,#102b46,#126b91 70%,#1689a4);
+      color:white;
+      padding:22px clamp(15px,4vw,42px);
+      box-shadow:0 8px 28px #0d355018;
+    }
+
+    .top-inner,.welcome {
+      max-width:1550px;
+      margin:auto;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
+    .brand { display:flex;align-items:center;gap:13px; }
+
+    .brand-icon {
+      display:grid;
+      place-items:center;
+      width:49px;
+      height:49px;
+      border:1px solid #ffffff38;
+      border-radius:15px;
+      background:#ffffff18;
+      font-size:25px;
+    }
+
+    h1 {
+      font-size:clamp(21px,3vw,29px);
+      margin:0 0 5px;
+      letter-spacing:-.6px;
+    }
+
+    .subtitle { color:#d9eff8;font-size:12px; }
+
+    .top-actions,.toolbar,.filters,.actions {
+      display:flex;
+      gap:9px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .container {
+      max-width:1550px;
+      margin:auto;
+      padding:25px clamp(12px,3vw,32px) 40px;
+    }
+
+    .welcome { margin-bottom:20px; }
+    .welcome h2 { margin:0 0 6px;font-size:22px; }
+    .muted { color:var(--muted);font-size:12px;line-height:1.6; }
+
+    .btn {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      border:1px solid transparent;
+      border-radius:10px;
+      padding:10px 13px;
+      text-decoration:none;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:750;
+      transition:.15s;
+    }
+
+    .btn:hover { filter:brightness(.97);transform:translateY(-1px); }
+    .btn:disabled { opacity:.55;cursor:wait;transform:none; }
+    .btn-light { background:white;color:var(--navy); }
+    .btn-primary { background:var(--blue);color:white; }
+    .btn-outline { background:white;color:var(--navy);border-color:var(--border); }
+    .btn-small { padding:7px 9px;font-size:11px; }
+
+    .notice {
+      display:none;
+      margin:0 0 17px;
+      padding:13px 15px;
+      border-radius:11px;
+      font-size:12px;
+      line-height:1.6;
+      overflow-wrap:anywhere;
+    }
+
+    .notice.error { display:block;color:#8b2530;background:#fff0f1;border:1px solid #ffd2d6; }
+    .notice.success { display:block;color:#116345;background:#eaf8f0;border:1px solid #c9ecd9; }
+    .notice.info { display:block;color:#214d91;background:#edf4ff;border:1px solid #d2e3ff; }
+
+    .health {
+      display:flex;
+      gap:8px;
+      align-items:center;
+      font-size:11px;
+      color:var(--muted);
+      background:white;
+      border:1px solid var(--border);
+      border-radius:99px;
+      padding:9px 12px;
+    }
+
+    .health-dot { width:8px;height:8px;border-radius:50%;background:#9ca3af; }
+    .health-dot.ok { background:#16a36a; }
+    .health-dot.bad { background:#d63f4d; }
+
+    .stats {
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:13px;
+      margin-bottom:20px;
+    }
+
+    .stat,.panel {
+      background:white;
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:0 4px 18px #15385808;
+    }
+
+    .stat { padding:17px; }
+    .stat-head { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+    .stat-label { color:var(--muted);font-size:11px;font-weight:700; }
+    .stat-icon { font-size:21px; }
+    .stat-value { margin-top:13px;font-size:28px;font-weight:800;letter-spacing:-1px; }
+    .stat-foot { margin-top:5px;color:var(--muted);font-size:10px; }
+
+    .panel { margin-bottom:19px;overflow:hidden; }
+    .panel-head {
+      padding:17px 19px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      border-bottom:1px solid var(--border);
+    }
+
+    .panel-head h3 { margin:0 0 4px;font-size:15px; }
+    .panel-body { padding:17px 19px; }
+
+    .overview-grid {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+    }
+
+    .overview-card {
+      border:1px solid var(--border);
+      border-radius:13px;
+      padding:14px;
+      display:flex;
+      gap:11px;
+      align-items:flex-start;
+      min-width:0;
+    }
+
+    .overview-icon {
+      display:grid;
+      place-items:center;
+      width:37px;
+      height:37px;
+      flex:0 0 37px;
+      background:#edf6fc;
+      border-radius:11px;
+      font-size:18px;
+    }
+
+    .overview-card strong { display:block;font-size:12px;margin-bottom:5px; }
+    .overview-card p { margin:0;color:var(--muted);font-size:11px;line-height:1.55; }
+
+    .mini-summary { display:flex;gap:8px;flex-wrap:wrap;margin-top:12px; }
+    .mini-pill { background:#f1f7fb;border:1px solid #e1edf4;border-radius:9px;padding:7px 9px;font-size:10px;color:#516b80; }
+    .mini-pill b { color:#1a3853; }
+
+    .field {
+      border:1px solid #d7e3ed;
+      border-radius:10px;
+      padding:10px 12px;
+      background:white;
+      color:var(--text);
+      min-width:0;
+      font-size:12px;
+      outline:none;
+    }
+
+    .field:focus { border-color:#50a8d4;box-shadow:0 0 0 3px #dff3fc; }
+    .search { flex:1 1 240px; }
+    .filters select { flex:0 1 175px; }
+
+    .table-wrap { width:100%;overflow:auto; }
+    table { width:100%;border-collapse:collapse;white-space:nowrap; }
+
+    th {
+      padding:12px 14px;
+      background:#f7fafc;
+      color:#64778a;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      text-align:left;
+      border-bottom:1px solid var(--border);
+    }
+
+    td {
+      padding:13px 14px;
+      border-bottom:1px solid #edf2f6;
+      font-size:11px;
+      vertical-align:middle;
+    }
+
+    tbody tr:hover { background:#f9fcfe; }
+    .primary-cell { font-weight:750;color:#203c58; }
+    .secondary-cell {
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+      margin-top:4px;
+      max-width:240px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .badge {
+      display:inline-flex;
+      align-items:center;
+      border-radius:30px;
+      padding:5px 8px;
+      font-size:9px;
+      font-weight:800;
+    }
+
+    .badge-green { background:#e5f7ee;color:#13754d; }
+    .badge-red { background:#ffebed;color:#b42d3b; }
+    .badge-orange { background:#fff3df;color:#9b5a08; }
+    .badge-blue { background:#e8f1ff;color:#2358b7; }
+    .badge-purple { background:#f0eaff;color:#6744b2; }
+    .badge-gray { background:#edf0f5;color:#596579; }
+
+    .batch-card {
+      border:1px solid var(--border);
+      border-radius:13px;
+      margin:12px 0;
+      overflow:hidden;
+      background:white;
+    }
+
+    .batch-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+      padding:15px;
+      background:#f7fbfe;
+      border-bottom:1px solid var(--border);
+    }
+
+    .batch-title { font-weight:800;font-size:13px;color:#173b59; }
+    .batch-meta { display:flex;gap:7px;flex-wrap:wrap;margin-top:7px; }
+    .batch-meta span { font-size:10px;color:var(--muted); }
+    .batch-items { padding:0 14px; }
+    .batch-item {
+      display:grid;
+      grid-template-columns:minmax(150px,2fr) minmax(90px,1fr) minmax(75px,.6fr) minmax(90px,.8fr);
+      gap:10px;
+      align-items:center;
+      padding:12px 0;
+      border-bottom:1px solid #edf2f6;
+      font-size:11px;
+    }
+
+    .batch-item:last-child { border-bottom:0; }
+    .batch-col-label { display:block;color:var(--muted);font-size:9px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em; }
+    .batch-foot {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:12px 15px;
+      background:#fbfdff;
+      border-top:1px solid var(--border);
+      font-size:11px;
+    }
+
+    .empty { text-align:center;color:var(--muted);padding:38px 15px;white-space:normal;line-height:1.7; }
+    .empty strong { display:block;color:var(--text);margin-bottom:6px; }
+    .table-footer { display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 17px;font-size:11px;color:var(--muted); }
+    .footer { text-align:center;color:#8390a3;font-size:10px;padding:12px; }
+
+    @media(max-width:1100px) {
+      .stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+      .overview-grid { grid-template-columns:1fr 1fr; }
+      .overview-card:first-child { grid-column:1/-1; }
+    }
+
+    @media(max-width:650px) {
+      .stats { grid-template-columns:repeat(2,minmax(0,1fr));gap:9px; }
+      .stat { padding:13px; }
+      .stat-value { font-size:24px; }
+      .container { padding-top:17px; }
+      .panel-head,.panel-body { padding:13px; }
+      .top-actions { width:100%; }
+      .top-actions .btn { flex:1; }
+      .overview-grid { grid-template-columns:1fr; }
+      .overview-card:first-child { grid-column:auto; }
+      .filters select { flex:1 1 135px; }
+      .welcome h2 { font-size:19px; }
+      .batch-item { grid-template-columns:1fr 1fr;gap:9px; }
+    }
+
+    @media print {
+      body { background:white; }
+      .topbar { background:white;color:black;padding:10px 0;box-shadow:none; }
+      .subtitle { color:#555; }
+      .top-actions,.toolbar,.filters,.actions,.footer,.no-print { display:none!important; }
+      .container { max-width:none;padding:8px 0; }
+      .panel,.stat,.batch-card { box-shadow:none;break-inside:avoid; }
+      .table-wrap { overflow:visible; }
+      table { white-space:normal; }
+      th,td { padding:6px 4px;font-size:8px; }
+      .stats { grid-template-columns:repeat(5,1fr); }
+    }
+  </style>
+</head>
+
+<body>
+<header class="topbar">
+  <div class="top-inner">
+    <div class="brand">
+      <div class="brand-icon">🧼</div>
+      <div>
+        <h1>Kleensure Borrowing Monitor</h1>
+        <div class="subtitle">Equipment, cleaning supplies & return accountability</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <a class="btn btn-light" href="dashboard.html">← Dashboard</a>
+      <button class="btn btn-light" id="refreshBtn" type="button">↻ Refresh</button>
+      <button class="btn btn-light" id="logoutBtn" type="button">Log out</button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <section class="welcome">
+    <div>
+      <h2>Borrowing & Returns Overview</h2>
+      <div class="muted">Alamin kung sino ang may hawak ng equipment, supplies, at batch na naka-assign sa bawat job/site.</div>
+    </div>
+    <div class="health">
+      <span class="health-dot" id="healthDot"></span>
+      <span id="healthText">Checking connection…</span>
+    </div>
+  </section>
+
+  <div id="pageMessage" class="notice" role="status" aria-live="polite"></div>
+
+  <section class="stats">
+    <article class="stat">
+      <div class="stat-head"><span class="stat-label">Borrow Records</span><span class="stat-icon">📋</span></div>
+      <div class="stat-value" id="totalRecords">—</div>
+      <div class="stat-foot">Individual item records</div>
+    </article>
+    <article class="stat">
+      <div class="stat-head"><span class="stat-label">Borrow Batches</span><span class="stat-icon">📦</span></div>
+      <div class="stat-value" id="totalBatches">—</div>
+      <div class="stat-foot">Unique batch references</div>
+    </article>
+    <article class="stat">
+      <div class="stat-head"><span class="stat-label">Items Still Out</span><span class="stat-icon">📤</span></div>
+      <div class="stat-value" id="activeRecords">—</div>
+      <div class="stat-foot">Borrowed and not closed</div>
+    </article>
+    <article class="stat">
+      <div class="stat-head"><span class="stat-label">Overdue</span><span class="stat-icon">⏰</span></div>
+      <div class="stat-value" id="overdueRecords">—</div>
+      <div class="stat-foot">Past due and outstanding</div>
+    </article>
+    <article class="stat">
+      <div class="stat-head"><span class="stat-label">Needs Attention</span><span class="stat-icon">⚠️</span></div>
+      <div class="stat-value" id="attentionRecords">—</div>
+      <div class="stat-foot">Damaged or missing records</div>
+    </article>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div><h3>Follow-up Center</h3><div class="muted">Quick summary ng mga kailangang i-follow up.</div></div>
+    </div>
+    <div class="panel-body">
+      <div class="overview-grid">
+        <div class="overview-card">
+          <div class="overview-icon">⏰</div>
+          <div>
+            <strong id="overdueAlertTitle">Checking overdue items…</strong>
+            <p id="overdueAlertText">Loading borrowing records.</p>
+            <div class="mini-summary">
+              <span class="mini-pill">Due today: <b id="dueTodayCount">—</b></span>
+              <span class="mini-pill">Due in 3 days: <b id="dueSoonCount">—</b></span>
+            </div>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-icon">🛠️</div>
+          <div>
+            <strong>Damaged / Missing</strong>
+            <p id="issueAlertText">Loading item issues…</p>
+            <div style="margin-top:9px"><a class="btn btn-outline btn-small" href="admin_repair.html">Open repair page →</a></div>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-icon">🧰</div>
+          <div>
+            <strong>Inventory</strong>
+            <p id="inventoryAlertText">Loading inventory summary…</p>
+            <div style="margin-top:9px"><a class="btn btn-outline btn-small" href="add_item.html">Add inventory item →</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h3>Batch Borrowing Monitor</h3>
+        <div class="muted">Isang batch bawat job/site. Makikita ang borrower at lahat ng item na nakapaloob sa batch.</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-outline" id="exportBatchesBtn" type="button">↓ Export batches CSV</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="filters">
+        <input class="field search" id="batchSearchInput" type="search" placeholder="Search batch ID, borrower, item, job/site…">
+        <select class="field" id="batchStatusFilter">
+          <option value="all">All batch statuses</option>
+          <option value="active">Has items still out</option>
+          <option value="overdue">Has overdue items</option>
+          <option value="returned">All items returned/closed</option>
+          <option value="attention">Has damaged/missing items</option>
+        </select>
+        <select class="field" id="batchSortFilter">
+          <option value="newest">Newest batch first</option>
+          <option value="oldest">Oldest batch first</option>
+          <option value="borrower">Borrower A–Z</option>
+        </select>
+      </div>
+      <div id="batchList" style="margin-top:12px">
+        <div class="empty"><strong>Loading batches…</strong>Please wait.</div>
+      </div>
+      <div class="table-footer">
+        <span id="batchResultsCount">Loading batches…</span>
+        <span>Batch grouping is based on batch ID stored in borrowing records.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div><h3>Individual Borrowing Records</h3><div class="muted">Search at i-filter ang bawat item record.</div></div>
+      <div class="toolbar">
+        <button class="btn btn-outline" id="exportBtn" type="button">↓ Export CSV</button>
+        <button class="btn btn-primary" id="printBtn" type="button">⎙ Print report</button>
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <div class="filters">
+        <input class="field search" id="searchInput" type="search" placeholder="Search worker, item, email, batch ID, job/site…">
+        <select class="field" id="statusFilter">
+          <option value="all">All statuses</option>
+          <option value="active">Still out</option>
+          <option value="due_today">Due today</option>
+          <option value="due_soon">Due within 3 days</option>
+          <option value="overdue">Overdue</option>
+          <option value="returned">Returned / closed</option>
+          <option value="damaged">Damaged</option>
+          <option value="missing">Missing</option>
+        </select>
+        <select class="field" id="categoryFilter"><option value="all">All categories</option></select>
+        <select class="field" id="sortFilter">
+          <option value="newest">Newest borrowed</option>
+          <option value="oldest">Oldest borrowed</option>
+          <option value="due">Nearest due date</option>
+          <option value="borrower">Worker A–Z</option>
+          <option value="item">Item A–Z</option>
+        </select>
+        <button class="btn btn-outline" id="clearFiltersBtn" type="button">Clear filters</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Record / Batch</th><th>Worker</th><th>Item / Category</th>
+            <th>Quantity</th><th>Job / Site</th><th>Borrowed</th>
+            <th>Due date</th><th>Returned</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="logsBody">
+          <tr><td colspan="10" class="empty">Loading borrowing records…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span id="resultsCount">Loading records…</span>
+      <span id="lastUpdated">Last updated: —</span>
+    </div>
+  </section>
+
+  <div class="footer">Kleensure Inventory & Borrowing Monitor · <span id="currentYear"></span></div>
+</main>
+
+<script type="module">
+import { auth, db } from "../firebase.js";
+
+import {
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+
+let allLogs = [];
+let allItems = [];
+let allUsers = [];
+let loadInProgress = false;
+
+const allowedRoles = [
+  "admin","administrator","manager","staff","faculty",
+  "team_leader","lead man","worker","employee"
+];
+
+function norm(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function safe(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[char]);
+}
+
+function getValue(obj, keys, fallback = "") {
+  for (const key of keys) {
+    const value = obj?.[key];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+  return fallback;
+}
+
+function toDate(value) {
+  if (!value) return null;
+
+  if (typeof value.toDate === "function") {
+    const date = value.toDate();
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === "number") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (typeof value === "string") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (typeof value === "object" && value.seconds != null) {
+    const date = new Date(value.seconds * 1000);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  return null;
+}
+
+function formatDate(value) {
+  const date = toDate(value);
+  if (!date) return "—";
+
+  return new Intl.DateTimeFormat("en-PH", {
+    year:"numeric",month:"short",day:"2-digit"
+  }).format(date);
+}
+
+function dateValue(value) {
+  return toDate(value)?.getTime() ?? 0;
+}
+
+function startOfToday() {
+  const date = new Date();
+  date.setHours(0,0,0,0);
+  return date;
+}
+
+function dayOffset(days) {
+  const date = startOfToday();
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+function showMessage(message, type = "info") {
+  const el = $("pageMessage");
+  el.className = "notice " + type;
+  el.textContent = message;
+}
+
+function hideMessage() {
+  $("pageMessage").className = "notice";
+  $("pageMessage").textContent = "";
+}
+
+function setHealth(ok, message) {
+  $("healthDot").className = "health-dot " + (ok ? "ok" : "bad");
+  $("healthText").textContent = message;
+}
+
+function normalizeStatus(log) {
+  const raw = norm(getValue(log, [
+    "status","borrow_status","borrowStatus","state",
+    "returnStatus","return_status"
+  ]));
+
+  const returned = getValue(log, [
+    "returnedAt","returned_at","date_returned","dateReturned",
+    "returnDate","actualReturnDate","actual_return_date"
+  ]);
+
+  if (returned || ["returned","complete","completed","closed"].includes(raw)) {
+    return "returned";
+  }
+
+  if (["damaged","repair","for repair","broken"].includes(raw)) {
+    return "damaged";
+  }
+
+  if (["missing","lost"].includes(raw)) return "missing";
+  if (["rejected","cancelled","canceled"].includes(raw)) return raw;
+
+  const due = toDate(getValue(log, [
+    "dueDate","due_date","return_due","returnDue",
+    "expectedReturnDate","expected_return_date"
+  ]));
+
+  if (due && due.getTime() < startOfToday().getTime()) return "overdue";
+
+  return raw || "active";
+}
+
+function resolveLog(log, id, itemMap, userMap) {
+  const itemId = String(getValue(log, [
+    "item_id","itemId","itemID","inventoryId","inventory_id"
+  ]));
+
+  const uid = String(getValue(log, [
+    "user_id","userId","uid","borrowerId","borrower_id",
+    "workerId","worker_id","employeeId","employee_id",
+    "studentId","student_id"
+  ]));
+
+  const item = itemMap.get(itemId) || {};
+  const user = userMap.get(uid) || {};
+
+  const borrower = getValue(log, [
+    "borrowerName","borrower_name","workerName","worker_name",
+    "employeeName","employee_name","studentName","student_name",
+    "userName","user_name","fullName","fullname","name"
+  ]) || getValue(user, [
+    "fullName","fullname","displayName","display_name",
+    "name","workerName","email"
+  ], "Unknown worker");
+
+  const email = getValue(log, [
+    "borrowerEmail","borrower_email","workerEmail","worker_email","email"
+  ]) || getValue(user, ["email"], "");
+
+  const itemName = getValue(log, [
+    "itemName","item_name","equipmentName","equipment_name",
+    "inventoryName","inventory_name","productName","product_name"
+  ]) || getValue(item, [
+    "item_name","itemName","name","title","description"
+  ], itemId ? "Item " + itemId : "Unknown item");
+
+  const category = getValue(log, [
+    "category","itemCategory","item_category"
+  ]) || getValue(item, ["category","item_category"], "Uncategorized");
+
+  const quantity = getValue(log, [
+    "quantity","qty","borrowedQuantity","borrowed_quantity","quantityBorrowed"
+  ], 1);
+
+  const borrowedAt = getValue(log, [
+    "borrowedAt","borrowed_at","dateBorrowed","date_borrowed",
+    "borrowDate","createdAt","created_at","timestamp","date","requestedAt"
+  ]);
+
+  const dueDate = getValue(log, [
+    "dueDate","due_date","return_due","returnDue",
+    "expectedReturnDate","expected_return_date"
+  ]);
+
+  const returnedAt = getValue(log, [
+    "returnedAt","returned_at","date_returned","dateReturned",
+    "returnDate","actualReturnDate","actual_return_date"
+  ]);
+
+  // If batchId is not stored, group by request/job ID if available;
+  // otherwise keep this record as its own batch.
+  const batchId = String(getValue(log, [
+    "batchId","batch_id","borrowBatchId","borrow_batch_id",
+    "requestId","request_id","jobId","job_id"
+  ], id));
+
+  const jobSite = String(getValue(log, [
+    "jobSite","job_site","siteName","site_name","jobName","job_name",
+    "location","projectName","project_name","address"
+  ], "—"));
+
+  return {
+    id, raw:log, borrower:String(borrower), email:String(email),
+    itemName:String(itemName), category:String(category), itemId, uid,
+    quantity:String(quantity), borrowedAt, dueDate, returnedAt,
+    status:normalizeStatus(log), batchId, jobSite,
+    returnedQty:String(getValue(log, [
+      "returnedQuantity","returned_quantity","quantityReturned","quantity_returned"
+    ], "")),
+    consumedQty:String(getValue(log, [
+      "consumedQuantity","consumed_quantity","quantityConsumed","quantity_consumed"
+    ], "")),
+    missingQty:String(getValue(log, [
+      "missingQuantity","missing_quantity","quantityMissing","quantity_missing"
+    ], "")),
+    damagedQty:String(getValue(log, [
+      "damagedQuantity","damaged_quantity","quantityDamaged","quantity_damaged"
+    ], ""))
+  };
+}
+
+async function loadLogs() {
+  if (loadInProgress) return;
+
+  loadInProgress = true;
+  $("refreshBtn").disabled = true;
+  $("refreshBtn").textContent = "Loading…";
+
+  try {
+    let logsSnap, itemsSnap, usersSnap;
+
+    try {
+      logsSnap = await getDocs(collection(db, "borrow_logs"));
+    } catch (error) {
+      throw new Error("Hindi mabasa ang borrow_logs: " + (error.code || error.message || "unknown error"));
+    }
+
+    try {
+      itemsSnap = await getDocs(collection(db, "items"));
+    } catch (error) {
+      throw new Error("Hindi mabasa ang items: " + (error.code || error.message || "unknown error"));
+    }
+
+    try {
+      usersSnap = await getDocs(collection(db, "users"));
+    } catch (error) {
+      throw new Error("Hindi mabasa ang users: " + (error.code || error.message || "unknown error") + ". Suriin ang Firestore Rules.");
+    }
+
+    allItems = itemsSnap.docs.map(s => ({id:s.id,...s.data()}));
+    allUsers = usersSnap.docs.map(s => ({id:s.id,...s.data()}));
+
+    const itemMap = new Map(allItems.map(x => [x.id,x]));
+    const userMap = new Map(allUsers.map(x => [x.id,x]));
+
+    allLogs = logsSnap.docs.map(s => ({id:s.id,...s.data()})).map(log => {
+      const id = log.id;
+      const {id:_ignored,...data} = log;
+      return resolveLog(data,id,itemMap,userMap);
+    });
+
+    populateCategories();
+    renderStats();
+    renderAlerts();
+    renderBatches();
+    renderTable();
+
+    $("lastUpdated").textContent = "Last updated: " + new Date().toLocaleTimeString("en-PH");
+    setHealth(true,"Connected · Data loaded");
+    showMessage(
+      `Na-load ang ${allLogs.length} borrowing record(s), ${allItems.length} inventory item(s), at ${allUsers.length} user profile(s).`,
+      "success"
+    );
+  } catch (error) {
+    console.error("Kleensure borrowing monitor load failed:",error);
+    setHealth(false,"Unable to load data");
+    showMessage("Hindi ma-load ang borrowing data. " + (error.message || error.code || "Unknown error"),"error");
+
+    $("logsBody").innerHTML = `
+      <tr><td colspan="10" class="empty">
+        <strong>Hindi ma-load ang borrowing records.</strong>
+        ${safe(error.message || error.code || "Unknown error")}
+        <div style="margin-top:10px">Suriin ang Firebase login, Firestore Rules, at collection names.</div>
+      </td></tr>`;
+
+    $("batchList").innerHTML = `
+      <div class="empty"><strong>Hindi ma-load ang batch records.</strong>
+      Suriin ang borrowing data at Firestore Rules.</div>`;
+
+    $("resultsCount").textContent = "Unable to load records";
+    $("batchResultsCount").textContent = "Unable to load batches";
+  } finally {
+    loadInProgress = false;
+    $("refreshBtn").disabled = false;
+    $("refreshBtn").textContent = "↻ Refresh";
+  }
+}
+
+function isClosed(log) {
+  return ["returned","rejected","cancelled","canceled"].includes(log.status);
+}
+
+function isActive(log) {
+  return !isClosed(log) && !["damaged","missing"].includes(log.status);
+}
+
+function isDueToday(log) {
+  const d = toDate(log.dueDate);
+  return isActive(log) && d && d >= startOfToday() && d < dayOffset(1);
+}
+
+function isDueSoon(log) {
+  const d = toDate(log.dueDate);
+  return isActive(log) && d && d >= dayOffset(1) && d < dayOffset(4);
+}
+
+function getBatchStatus(items) {
+  if (items.some(x => x.status === "overdue")) return "overdue";
+  if (items.some(x => x.status === "missing" || x.status === "damaged")) return "attention";
+  if (items.some(isActive)) return "active";
+  return "returned";
+}
+
+function batchStatusLabel(status) {
+  return ({
+    active:"Items still out",
+    overdue:"Has overdue items",
+    attention:"Needs attention",
+    returned:"All items closed"
+  })[status] || status;
+}
+
+function batchStatusClass(status) {
+  return ({
+    active:"badge-blue",
+    overdue:"badge-red",
+    attention:"badge-orange",
+    returned:"badge-green"
+  })[status] || "badge-gray";
+}
+
+function buildBatches(records) {
+  const groups = new Map();
+
+  for (const log of records) {
+    const key = log.batchId || log.id;
+
+    if (!groups.has(key)) {
+      groups.set(key,{
+        id:key,
+        items:[],
+        borrower:log.borrower,
+        email:log.email,
+        uid:log.uid,
+        jobSite:log.jobSite,
+        borrowedAt:log.borrowedAt,
+        dueDate:log.dueDate
+      });
+    }
+
+    const batch = groups.get(key);
+    batch.items.push(log);
+
+    // Prefer a populated name/site/date if different item records vary.
+    if ((!batch.borrower || batch.borrower === "Unknown worker") &&
+        log.borrower !== "Unknown worker") batch.borrower = log.borrower;
+
+    if ((!batch.email) && log.email) batch.email = log.email;
+    if ((!batch.uid) && log.uid) batch.uid = log.uid;
+    if ((!batch.jobSite || batch.jobSite === "—") && log.jobSite !== "—") batch.jobSite = log.jobSite;
+
+    if (dateValue(log.borrowedAt) && (!dateValue(batch.borrowedAt) ||
+        dateValue(log.borrowedAt) < dateValue(batch.borrowedAt))) {
+      batch.borrowedAt = log.borrowedAt;
+    }
+
+    if (dateValue(log.dueDate) && (!dateValue(batch.dueDate) ||
+        dateValue(log.dueDate) < dateValue(batch.dueDate))) {
+      batch.dueDate = log.dueDate;
+    }
+  }
+
+  return [...groups.values()].map(batch => {
+    batch.status = getBatchStatus(batch.items);
+    batch.totalQuantity = batch.items.reduce((sum,item) => {
+      const q = Number(item.quantity);
+      return sum + (Number.isFinite(q) ? q : 0);
+    },0);
+    return batch;
+  });
+}
+
+function renderStats() {
+  const batches = buildBatches(allLogs);
+
+  $("totalRecords").textContent = allLogs.length;
+  $("totalBatches").textContent = batches.length;
+  $("activeRecords").textContent = allLogs.filter(isActive).length;
+  $("overdueRecords").textContent = allLogs.filter(x => x.status === "overdue").length;
+  $("attentionRecords").textContent = allLogs.filter(x =>
+    x.status === "damaged" || x.status === "missing"
+  ).length;
+}
+
+function renderAlerts() {
+  const overdue = allLogs.filter(x => x.status === "overdue").length;
+  const damaged = allLogs.filter(x => x.status === "damaged").length;
+  const missing = allLogs.filter(x => x.status === "missing").length;
+
+  $("overdueAlertTitle").textContent = overdue
+    ? `${overdue} overdue record(s) need follow-up`
+    : "Walang overdue records";
+
+  $("overdueAlertText").textContent = overdue
+    ? "I-follow up ang assigned worker at kumpirmahin ang return plan."
+    : "Walang overdue na nakita sa kasalukuyang loaded records.";
+
+  $("dueTodayCount").textContent = allLogs.filter(isDueToday).length;
+  $("dueSoonCount").textContent = allLogs.filter(isDueSoon).length;
+
+  $("issueAlertText").textContent =
+    `${damaged} damaged at ${missing} missing record(s).`;
+
+  $("inventoryAlertText").textContent =
+    `${allItems.length} inventory item(s) ang nasa collection.`;
+}
+
+function populateCategories() {
+  const select = $("categoryFilter");
+  const current = select.value;
+
+  const categories = [...new Set(
+    allLogs.map(x => x.category).filter(x => x && x !== "Uncategorized")
+  )].sort((a,b) => a.localeCompare(b));
+
+  select.innerHTML = '<option value="all">All categories</option>' +
+    categories.map(c => `<option value="${safe(c)}">${safe(c)}</option>`).join("");
+
+  if (categories.includes(current)) select.value = current;
+}
+
+function getFilteredBatches() {
+  const query = norm($("batchSearchInput").value);
+  const status = $("batchStatusFilter").value;
+  const sort = $("batchSortFilter").value;
+
+  let batches = buildBatches(allLogs).filter(batch => {
+    const searchable = norm([
+      batch.id,batch.borrower,batch.email,batch.uid,batch.jobSite,
+      ...batch.items.map(x => `${x.itemName} ${x.category} ${x.itemId} ${x.status}`)
+    ].join(" "));
+
+    const matchesSearch = !query || searchable.includes(query);
+    const matchesStatus = status === "all" ||
+      (status === "active" && batch.status === "active") ||
+      (status === "overdue" && batch.items.some(x => x.status === "overdue")) ||
+      (status === "returned" && batch.status === "returned") ||
+      (status === "attention" && batch.items.some(x =>
+        x.status === "damaged" || x.status === "missing"
+      ));
+
+    return matchesSearch && matchesStatus;
+  });
+
+  if (sort === "newest") {
+    batches.sort((a,b) => dateValue(b.borrowedAt) - dateValue(a.borrowedAt));
+  } else if (sort === "oldest") {
+    batches.sort((a,b) => dateValue(a.borrowedAt) - dateValue(b.borrowedAt));
+  } else if (sort === "borrower") {
+    batches.sort((a,b) => a.borrower.localeCompare(b.borrower));
+  }
+
+  return batches;
+}
+
+function renderBatches() {
+  const batches = getFilteredBatches();
+  const list = $("batchList");
+
+  $("batchResultsCount").textContent =
+    `Showing ${batches.length} of ${buildBatches(allLogs).length} batch(es)`;
+
+  if (!batches.length) {
+    list.innerHTML = `
+      <div class="empty">
+        <strong>Walang batch borrowing records na nahanap.</strong>
+        Subukang baguhin ang search o filters.
+        <br><br>
+        Kung ang bawat item ay walang batch ID sa Firestore, hindi sila awtomatikong maipapangkat bilang iisang batch.
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = batches.map(batch => {
+    const shortId = batch.id.length > 24 ? batch.id.slice(0,24) + "…" : batch.id;
+    const itemRows = batch.items.map(item => `
+      <div class="batch-item">
+        <div>
+          <span class="batch-col-label">Item</span>
+          <strong>${safe(item.itemName)}</strong>
+          <span class="secondary-cell">${safe(item.category)}${item.itemId ? " · ID: " + safe(item.itemId) : ""}</span>
+        </div>
+        <div>
+          <span class="batch-col-label">Item status</span>
+          <span class="badge ${statusClass(item.status)}">${safe(statusLabel(item.status))}</span>
+          <span class="secondary-cell">Due: ${safe(formatDate(item.dueDate))}</span>
+        </div>
+        <div>
+          <span class="batch-col-label">Quantity</span>
+          <strong>${safe(item.quantity)}</strong>
+        </div>
+        <div>
+          <span class="batch-col-label">Borrow record</span>
+          <strong title="${safe(item.id)}">${safe(item.id.length > 12 ? item.id.slice(0,12)+"…" : item.id)}</strong>
+          <span class="secondary-cell">Returned: ${safe(formatDate(item.returnedAt))}</span>
+        </div>
+      </div>
+    `).join("");
+
+    return `
+      <article class="batch-card">
+        <div class="batch-head">
+          <div>
+            <div class="batch-title">📦 Batch: ${safe(shortId)}</div>
+            <div class="batch-meta">
+              <span><strong>Borrower:</strong> ${safe(batch.borrower)}</span>
+              ${batch.email ? `<span>· ${safe(batch.email)}</span>` : ""}
+              ${batch.uid ? `<span>· UID: ${safe(batch.uid)}</span>` : ""}
+              <span>· <strong>Job/Site:</strong> ${safe(batch.jobSite)}</span>
+            </div>
+            <div class="batch-meta">
+              <span>Borrowed: ${safe(formatDate(batch.borrowedAt))}</span>
+              <span>· Earliest due date: ${safe(formatDate(batch.dueDate))}</span>
+              <span>· ${batch.items.length} item record(s)</span>
+              <span>· Total quantity: ${safe(batch.totalQuantity)}</span>
+            </div>
+          </div>
+          <div class="actions">
+            <span class="badge ${batchStatusClass(batch.status)}">${safe(batchStatusLabel(batch.status))}</span>
+            <button type="button" class="btn btn-outline btn-small" data-copy-batch="${safe(batch.id)}">Copy batch ID</button>
+          </div>
+        </div>
+        <div class="batch-items">${itemRows}</div>
+        <div class="batch-foot">
+          <span><strong>Accountable worker:</strong> ${safe(batch.borrower)}</span>
+          <span>${batch.items.filter(isActive).length} item record(s) still out · ${batch.items.filter(x => x.status === "overdue").length} overdue</span>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function statusLabel(status) {
+  return ({
+    active:"Still out",
+    borrowed:"Still out",
+    pending:"Pending",
+    returned:"Returned",
+    overdue:"Overdue",
+    damaged:"Damaged",
+    missing:"Missing",
+    rejected:"Rejected",
+    cancelled:"Cancelled",
+    canceled:"Cancelled"
+  })[status] || (status ? status.charAt(0).toUpperCase() + status.slice(1) : "Unknown");
+}
+
+function statusClass(status) {
+  if (status === "returned") return "badge-green";
+  if (status === "overdue" || status === "missing") return "badge-red";
+  if (status === "damaged" || status === "pending") return "badge-orange";
+  if (status === "active" || status === "borrowed") return "badge-blue";
+  if (status === "rejected" || status === "cancelled" || status === "canceled") return "badge-gray";
+  return "badge-purple";
+}
+
+function getFilteredLogs() {
+  const query = norm($("searchInput").value);
+  const status = $("statusFilter").value;
+  const category = $("categoryFilter").value;
+  const sort = $("sortFilter").value;
+
+  let records = allLogs.filter(log => {
+    const searchable = norm([
+      log.id,log.batchId,log.borrower,log.email,log.itemName,
+      log.itemId,log.uid,log.status,log.category,log.jobSite
+    ].join(" "));
+
+    const matchesSearch = !query || searchable.includes(query);
+    const matchesCategory = category === "all" || log.category === category;
+
+    let matchesStatus = status === "all" ||
+      (status === "active" && isActive(log)) ||
+      (status === "due_today" && isDueToday(log)) ||
+      (status === "due_soon" && isDueSoon(log)) ||
+      (["returned","overdue","damaged","missing"].includes(status) && log.status === status);
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  if (sort === "newest") {
+    records.sort((a,b) => dateValue(b.borrowedAt) - dateValue(a.borrowedAt));
+  } else if (sort === "oldest") {
+    records.sort((a,b) => dateValue(a.borrowedAt) - dateValue(b.borrowedAt));
+  } else if (sort === "due") {
+    records.sort((a,b) =>
+      (dateValue(a.dueDate) || Infinity) - (dateValue(b.dueDate) || Infinity)
+    );
+  } else if (sort === "borrower") {
+    records.sort((a,b) => a.borrower.localeCompare(b.borrower));
+  } else if (sort === "item") {
+    records.sort((a,b) => a.itemName.localeCompare(b.itemName));
+  }
+
+  return records;
+}
+
+function renderTable() {
+  const records = getFilteredLogs();
+  const body = $("logsBody");
+
+  $("resultsCount").textContent =
+    `Showing ${records.length} of ${allLogs.length} record(s)`;
+
+  if (!records.length) {
+    body.innerHTML = `
+      <tr><td colspan="10" class="empty">
+        <strong>Walang nahanap na borrowing record.</strong>
+        Subukang baguhin ang search o filters.
+      </td></tr>`;
+    return;
+  }
+
+  body.innerHTML = records.map(log => {
+    const shortBatch = log.batchId.length > 13
+      ? log.batchId.slice(0,13) + "…" : log.batchId;
+
+    const shortId = log.id.length > 12
+      ? log.id.slice(0,12) + "…" : log.id;
+
+    const details = [
+      log.returnedQty ? "Returned " + log.returnedQty : "",
+      log.consumedQty ? "Consumed " + log.consumedQty : "",
+      log.missingQty ? "Missing " + log.missingQty : "",
+      log.damagedQty ? "Damaged " + log.damagedQty : ""
+    ].filter(Boolean).join(" · ");
+
+    return `
+      <tr>
+        <td>
+          <span class="primary-cell" title="${safe(log.id)}">${safe(shortId)}</span>
+          <span class="secondary-cell" title="${safe(log.batchId)}">Batch: ${safe(shortBatch)}</span>
+        </td>
+        <td>
+          <span class="primary-cell">${safe(log.borrower)}</span>
+          ${log.email ? `<span class="secondary-cell">${safe(log.email)}</span>` : ""}
+        </td>
+        <td>
+          <span class="primary-cell">${safe(log.itemName)}</span>
+          <span class="secondary-cell">${safe(log.category)}${log.itemId ? " · ID: " + safe(log.itemId) : ""}</span>
+        </td>
+        <td>
+          <span class="primary-cell">${safe(log.quantity)}</span>
+          ${details ? `<span class="secondary-cell">${safe(details)}</span>` : ""}
+        </td>
+        <td>
+          <span class="primary-cell">${safe(log.jobSite)}</span>
+          <span class="secondary-cell">${safe(log.uid || "No worker UID saved")}</span>
+        </td>
+        <td>${safe(formatDate(log.borrowedAt))}</td>
+        <td>${safe(formatDate(log.dueDate))}</td>
+        <td>${safe(formatDate(log.returnedAt))}</td>
+        <td><span class="badge ${statusClass(log.status)}">${safe(statusLabel(log.status))}</span></td>
+        <td>
+          <div class="actions">
+            <button type="button" class="btn btn-outline btn-small" data-copy-id="${safe(log.id)}">Copy ID</button>
+            <button type="button" class="btn btn-outline btn-small" data-copy-batch="${safe(log.batchId)}">Copy batch</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function csvDownload(filename, headers, rows) {
+  const cell = value => '"' + String(value ?? "").replace(/"/g,'""') + '"';
+  const csv = [headers,...rows].map(row => row.map(cell).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv],{type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV() {
+  const records = getFilteredLogs();
+
+  if (!records.length) {
+    showMessage("Walang records na ie-export. Ayusin muna ang filters.","info");
+    return;
+  }
+
+  const headers = [
+    "Record ID","Batch ID","Worker","Email","Worker UID","Item","Item ID",
+    "Category","Quantity Borrowed","Returned Quantity","Consumed Quantity",
+    "Missing Quantity","Damaged Quantity","Job / Site","Date Borrowed",
+    "Due Date","Date Returned","Status"
+  ];
+
+  const rows = records.map(x => [
+    x.id,x.batchId,x.borrower,x.email,x.uid,x.itemName,x.itemId,x.category,
+    x.quantity,x.returnedQty,x.consumedQty,x.missingQty,x.damagedQty,
+    x.jobSite,formatDate(x.borrowedAt),formatDate(x.dueDate),
+    formatDate(x.returnedAt),statusLabel(x.status)
+  ]);
+
+  csvDownload(
+    "kleensure-borrowing-records-" + new Date().toISOString().slice(0,10) + ".csv",
+    headers,rows
+  );
+
+  showMessage("Na-download ang filtered borrowing records.","success");
+}
+
+function exportBatchesCSV() {
+  const batches = getFilteredBatches();
+
+  if (!batches.length) {
+    showMessage("Walang batch records na ie-export.","info");
+    return;
+  }
+
+  const headers = [
+    "Batch ID","Borrower","Email","Worker UID","Job / Site",
+    "Items in Batch","Total Quantity","Borrowed Date","Earliest Due Date",
+    "Batch Status","Item Names","Item Statuses"
+  ];
+
+  const rows = batches.map(batch => [
+    batch.id,batch.borrower,batch.email,batch.uid,batch.jobSite,
+    batch.items.length,batch.totalQuantity,formatDate(batch.borrowedAt),
+    formatDate(batch.dueDate),batchStatusLabel(batch.status),
+    batch.items.map(x => `${x.itemName} (Qty: ${x.quantity})`).join(" | "),
+    batch.items.map(x => `${x.itemName}: ${statusLabel(x.status)}`).join(" | ")
+  ]);
+
+  csvDownload(
+    "kleensure-batches-" + new Date().toISOString().slice(0,10) + ".csv",
+    headers,rows
+  );
+
+  showMessage("Na-download ang batch borrowing report.","success");
+}
+
+["searchInput","statusFilter","categoryFilter","sortFilter"].forEach(id => {
+  $(id).addEventListener(id === "searchInput" ? "input" : "change",renderTable);
+});
+
+["batchSearchInput","batchStatusFilter","batchSortFilter"].forEach(id => {
+  $(id).addEventListener(id === "batchSearchInput" ? "input" : "change",renderBatches);
+});
+
+$("clearFiltersBtn").addEventListener("click",() => {
+  $("searchInput").value = "";
+  $("statusFilter").value = "all";
+  $("categoryFilter").value = "all";
+  $("sortFilter").value = "newest";
+  renderTable();
+});
+
+$("refreshBtn").addEventListener("click",loadLogs);
+$("exportBtn").addEventListener("click",exportCSV);
+$("exportBatchesBtn").addEventListener("click",exportBatchesCSV);
+$("printBtn").addEventListener("click",() => window.print());
+
+document.addEventListener("click",async event => {
+  const button = event.target.closest("[data-copy-id],[data-copy-batch]");
+  if (!button) return;
+
+  const value = button.hasAttribute("data-copy-id")
+    ? button.getAttribute("data-copy-id")
+    : button.getAttribute("data-copy-batch");
+
+  try {
+    await navigator.clipboard.writeText(value);
+    showMessage("Nakopya: " + value,"success");
+  } catch {
+    showMessage("Hindi makapag-copy automatically. ID: " + value,"info");
+  }
+});
+
+$("logoutBtn").addEventListener("click",async() => {
+  try {
+    await signOut(auth);
+    sessionStorage.removeItem("inventoryUser");
+    window.location.href = "../login.html";
+  } catch (error) {
+    console.error(error);
+    showMessage("Logout failed: " + (error.message || "Unknown error"),"error");
+  }
+});
+
+$("currentYear").textContent = new Date().getFullYear();
+
+onAuthStateChanged(auth,async user => {
+  if (!user) {
+    window.location.href = "../login.html";
+    return;
+  }
+
+  try {
+    const profileSnap = await getDoc(doc(db,"users",user.uid));
+
+    if (!profileSnap.exists()) {
+      setHealth(false,"Profile not found");
+      showMessage(
+        "Walang users/" + user.uid +
+        " profile document para sa Firebase account na ito. Ipa-configure sa administrator.",
+        "error"
+      );
+      $("logsBody").innerHTML = `
+        <tr><td colspan="10" class="empty">
+          <strong>User profile not found.</strong>
+          Dapat tumugma ang users document ID sa Firebase Authentication UID.
+        </td></tr>`;
+      $("batchList").innerHTML = `
+        <div class="empty"><strong>User profile not found.</strong>
+        Ipa-configure ang profile sa administrator.</div>`;
+      return;
+    }
+
+    const profile = profileSnap.data();
+    const role = norm(profile.role);
+    const accountStatus = norm(profile.account_status || profile.accountStatus || "active");
+
+    if (!allowedRoles.includes(role) ||
+        ["blocked","disabled","suspended","inactive"].includes(accountStatus)) {
+      setHealth(false,"Access denied");
+      showMessage(
+        "Walang pahintulot ang account na ito na buksan ang Kleensure borrowing monitor.",
+        "error"
+      );
+      $("logsBody").innerHTML = `
+        <tr><td colspan="10" class="empty">
+          <strong>Insufficient permissions.</strong>
+          Makipag-ugnayan sa system administrator.
+        </td></tr>`;
+      $("batchList").innerHTML = `
+        <div class="empty"><strong>Insufficient permissions.</strong>
+        Hindi pinapahintulutan ang role na ito.</div>`;
+      return;
+    }
+
+    hideMessage();
+    await loadLogs();
+
+  } catch (error) {
+    console.error("Profile check failed:",error);
+    setHealth(false,"Profile check failed");
+    showMessage(
+      "Hindi ma-verify ang profile: " + (error.code || error.message || "Unknown error"),
+      "error"
+    );
+  }
+});
+</script>
+</body>
+</html>

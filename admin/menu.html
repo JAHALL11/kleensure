@@ -1,0 +1,805 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#38bdf8">
+<title>Kleensure | Inventory & Equipment Menu</title>
+
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">
+
+<style>
+:root {
+  --sky: #38bdf8;
+  --sky-dark: #0284c7;
+  --sky-light: #bae6fd;
+  --navy: #082f49;
+  --ink: #0f2940;
+  --muted: #64748b;
+  --white: #ffffff;
+  --glass: rgba(255,255,255,.84);
+  --line: rgba(186,230,253,.8);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Inter, Arial, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-x: hidden;
+  position: relative;
+  padding: 35px 12px;
+  color: var(--ink);
+  background: linear-gradient(135deg,#e0f2fe,#f0f9ff,#dbeafe);
+}
+
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    radial-gradient(circle at 15% 15%,rgba(56,189,248,.3),transparent 35%),
+    radial-gradient(circle at 85% 85%,rgba(2,132,199,.22),transparent 35%),
+    linear-gradient(135deg,#e0f2fe,#f8fcff,#dbeafe);
+}
+
+.glow {
+  position: fixed;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: .35;
+  pointer-events: none;
+  z-index: -2;
+  animation: floatGlow 8s ease-in-out infinite;
+}
+
+.glow1 {
+  top: -120px;
+  left: -100px;
+  background: #38bdf8;
+}
+
+.glow2 {
+  bottom: -130px;
+  right: -100px;
+  background: #60a5fa;
+  animation-delay: -3s;
+}
+
+.particle {
+  position: fixed;
+  border-radius: 50%;
+  background: rgba(14,165,233,.15);
+  pointer-events: none;
+  z-index: -1;
+  animation: float 16s linear infinite;
+}
+
+.menu-box {
+  width: 100%;
+  max-width: 540px;
+  padding: 35px;
+  border-radius: 30px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.9);
+  box-shadow: 0 25px 70px rgba(3,105,161,.16);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: popUp .7s ease;
+}
+
+.menu-box::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg,#0284c7,#38bdf8,#7dd3fc);
+}
+
+.clock {
+  text-align: right;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.logo-circle {
+  width: 112px;
+  height: 112px;
+  border-radius: 30px;
+  background: linear-gradient(145deg,#0284c7,#38bdf8);
+  margin: 15px auto 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 47px;
+  box-shadow: 0 12px 28px rgba(2,132,199,.3);
+  transition: .35s;
+}
+
+.logo-circle:hover {
+  transform: translateY(-4px) rotate(-3deg);
+  box-shadow: 0 18px 35px rgba(2,132,199,.35);
+}
+
+.menu-box h1 {
+  font-size: clamp(29px,5vw,39px);
+  letter-spacing: -1.2px;
+  color: var(--navy);
+  margin-bottom: 8px;
+  font-weight: 850;
+}
+
+.brand-accent {
+  color: var(--sky-dark);
+}
+
+.subtitle {
+  color: #64748b;
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.user-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.user-badge {
+  background: #e0f2fe;
+  color: #075985;
+  padding: 11px 17px;
+  border-radius: 14px;
+  font-weight: 750;
+  font-size: 13px;
+  border: 1px solid #bae6fd;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.online {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.online-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 4px rgba(16,185,129,.12);
+  animation: pulse 2s infinite;
+}
+
+.error {
+  margin: 15px 0;
+  padding: 13px 15px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 13px;
+  color: #991b1b;
+  font-size: 13px;
+  text-align: left;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.stat {
+  padding: 19px 8px;
+  border-radius: 19px;
+  background: rgba(255,255,255,.88);
+  border: 1px solid #e0f2fe;
+  box-shadow: 0 5px 15px rgba(3,105,161,.05);
+  transition: .25s;
+  min-width: 0;
+}
+
+.stat:hover {
+  transform: translateY(-4px);
+  border-color: #7dd3fc;
+  box-shadow: 0 10px 24px rgba(3,105,161,.1);
+}
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
+  border-radius: 13px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.stat h2 {
+  font-size: 27px;
+  color: var(--navy);
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.stat p {
+  font-size: 11px;
+  margin-top: 6px;
+  color: #64748b;
+  font-weight: 650;
+}
+
+.section-label {
+  text-align: left;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  margin: 0 0 11px 4px;
+}
+
+nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+}
+
+.menu-box nav a,
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 16px 14px;
+  border-radius: 15px;
+  text-decoration: none;
+  color: #075985;
+  font-size: 13px;
+  font-weight: 750;
+  transition: .25s;
+  border: 1px solid #dbeafe;
+  background: rgba(255,255,255,.9);
+  width: 100%;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(3,105,161,.04);
+  min-width: 0;
+}
+
+.menu-box nav a i,
+.logout-btn i {
+  width: 22px;
+  text-align: center;
+  font-size: 17px;
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
+.menu-box nav a:hover {
+  transform: translateY(-3px);
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  box-shadow: 0 8px 18px rgba(3,105,161,.1);
+}
+
+.menu-box nav a.primary {
+  color: white;
+  background: linear-gradient(135deg,#0284c7,#38bdf8);
+  border-color: transparent;
+}
+
+.menu-box nav a.primary i {
+  color: white;
+}
+
+.menu-box nav a.primary:hover {
+  background: linear-gradient(135deg,#0369a1,#0ea5e9);
+}
+
+.logout-btn {
+  grid-column: 1/-1;
+  justify-content: center;
+  margin-top: 4px;
+  color: #b91c1c;
+  background: #fff;
+  border-color: #fecaca;
+}
+
+.logout-btn i {
+  color: #dc2626;
+}
+
+.logout-btn:hover {
+  background: #fef2f2;
+  transform: translateY(-2px);
+}
+
+.logout-btn:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.system-box {
+  margin-top: 25px;
+  padding: 19px;
+  border-radius: 18px;
+  background: #f0f9ff;
+  border: 1px solid #dbeafe;
+  text-align: left;
+}
+
+.system-box h3 {
+  margin-bottom: 15px;
+  color: #0c4a6e;
+  font-size: 14px;
+}
+
+.system-box p {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 12px 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.system-box b {
+  color: #075985;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.system-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  display: inline-block;
+}
+
+.status {
+  margin-top: 16px;
+  color: #0369a1;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.footer {
+  margin-top: 25px;
+  padding-top: 18px;
+  border-top: 1px solid #e0f2fe;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.footer strong {
+  color: #0284c7;
+}
+
+@keyframes popUp {
+  from {opacity:0;transform:translateY(25px) scale(.98)}
+  to {opacity:1;transform:translateY(0) scale(1)}
+}
+
+@keyframes pulse {
+  0%,100% {box-shadow:0 0 0 4px rgba(16,185,129,.12)}
+  50% {box-shadow:0 0 0 7px rgba(16,185,129,.04)}
+}
+
+@keyframes floatGlow {
+  0%,100% {transform:translate(0,0)}
+  50% {transform:translate(20px,-20px)}
+}
+
+@keyframes float {
+  0% {transform:translateY(100vh)}
+  100% {transform:translateY(-120vh) translateX(50px)}
+}
+
+@media(max-width:420px) {
+  body {padding:18px 9px}
+  .menu-box {padding:27px 17px;border-radius:24px}
+  .logo-circle {width:90px;height:90px;font-size:38px;border-radius:24px}
+  .quick-stats {gap:7px}
+  .stat {padding:14px 4px}
+  .stat h2 {font-size:23px}
+  .stat p {font-size:10px}
+  nav {gap:8px}
+  .menu-box nav a {padding:14px 10px;font-size:12px;gap:8px}
+  .menu-box nav a i {font-size:15px;width:18px}
+  .system-box {padding:15px}
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    scroll-behavior:auto!important;
+    transition-duration:.01ms!important;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="bg"></div>
+<div class="glow glow1"></div>
+<div class="glow glow2"></div>
+
+<div class="particle" style="width:12px;height:12px;left:10%;animation-duration:13s"></div>
+<div class="particle" style="width:18px;height:18px;left:75%;animation-duration:17s"></div>
+<div class="particle" style="width:10px;height:10px;left:45%;animation-duration:15s"></div>
+
+<main class="menu-box">
+  <div class="clock" id="clock">Loading date and time...</div>
+
+  <div class="logo-circle">
+    <i class="fa-solid fa-spray-can-sparkles"></i>
+  </div>
+
+  <h1>Kleen<span class="brand-accent">sure</span></h1>
+  <p class="subtitle">
+    Cleaning Equipment & Inventory Management
+  </p>
+
+  <div class="user-box">
+    <div class="user-badge" id="userBadge">
+      <i class="fa-solid fa-user"></i> Checking account...
+    </div>
+    <div class="online">
+      <span class="online-dot"></span>
+      Signed in
+    </div>
+  </div>
+
+  <div id="errorBox" class="error hidden" role="alert" aria-live="polite"></div>
+
+  <section class="quick-stats">
+    <div class="stat">
+      <div class="stat-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+      <h2 id="totalItems">—</h2>
+      <p>Item Types</p>
+    </div>
+
+    <div class="stat">
+      <div class="stat-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
+      <h2 id="borrowedItems">—</h2>
+      <p>Active Borrows</p>
+    </div>
+
+    <div class="stat">
+      <div class="stat-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <h2 id="lowStock">—</h2>
+      <p>Low Stock</p>
+    </div>
+  </section>
+
+  <p class="section-label">Workspace</p>
+
+  <nav>
+    <a href="dashboard.html" class="primary">
+      <i class="fa-solid fa-chart-pie"></i> Dashboard
+    </a>
+
+    <a href="borrow_logs.html">
+      <i class="fa-solid fa-clipboard-list"></i> Borrow Logs
+    </a>
+
+    <a href="add_item.html">
+      <i class="fa-solid fa-circle-plus"></i> Add Inventory
+    </a>
+
+    <a href="reports.html">
+      <i class="fa-solid fa-chart-column"></i> Reports
+    </a>
+
+    <a href="profile.html">
+      <i class="fa-solid fa-user-gear"></i> My Profile
+    </a>
+
+    <a href="request_logs.html">
+      <i class="fa-solid fa-box-open"></i> Borrow Records
+    </a>
+
+    <button id="logoutBtn" class="logout-btn">
+      <i class="fa-solid fa-right-from-bracket"></i>
+      Sign Out
+    </button>
+  </nav>
+
+  <section class="system-box">
+    <h3><i class="fa-solid fa-shield-halved"></i> System Status</h3>
+
+    <p>
+      <span><i class="fa-solid fa-database"></i> Database</span>
+      <b class="system-status">
+        <span class="status-dot" id="databaseDot"></span>
+        <span id="databaseStatus">Checking...</span>
+      </b>
+    </p>
+
+    <p>
+      <span><i class="fa-solid fa-lock"></i> Authentication</span>
+      <b id="authStatus">Checking...</b>
+    </p>
+
+    <p>
+      <span><i class="fa-regular fa-calendar"></i> Date</span>
+      <b id="today">—</b>
+    </p>
+  </section>
+
+  <div id="status" class="status" aria-live="polite">
+    Connecting to Kleensure services...
+  </div>
+
+  <div class="footer">
+    <strong>Kleensure</strong> · Cleaning Equipment Management<br>
+    © <span id="year"></span> All rights reserved.
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCik-MVlxK6cshGy87dXOi10a0_c52cO1w",
+  authDomain: "inventory-4f2b5.firebaseapp.com",
+  projectId: "inventory-4f2b5",
+  storageBucket: "inventory-4f2b5.firebasestorage.app",
+  messagingSenderId: "185805306294",
+  appId: "1:185805306294:web:d674bd3c32b9994fa46917",
+  measurementId: "G-5KCN8KL8ET"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const el = id => document.getElementById(id);
+
+el("year").textContent = new Date().getFullYear();
+
+el("today").textContent = new Date().toLocaleDateString(undefined, {
+  year: "numeric",
+  month: "long",
+  day: "numeric"
+});
+
+function updateClock() {
+  el("clock").textContent = new Date().toLocaleString();
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+function showError(message) {
+  el("errorBox").textContent = message;
+  el("errorBox").classList.remove("hidden");
+}
+
+function hideError() {
+  el("errorBox").classList.add("hidden");
+}
+
+function setDatabaseStatus(text, color = "#f59e0b") {
+  el("databaseStatus").textContent = text;
+  el("databaseDot").style.background = color;
+}
+
+async function loadStats() {
+  const [itemsSnap, logsSnap] = await Promise.all([
+    getDocs(collection(db, "items")),
+    getDocs(collection(db, "borrow_logs"))
+  ]);
+
+  const items = itemsSnap.docs.map(d => d.data());
+  const logs = logsSnap.docs.map(d => d.data());
+
+  const borrowed = logs.filter(item =>
+    String(item.status || "").toLowerCase() === "borrowed"
+  ).length;
+
+  const lowStock = items.filter(item =>
+    Number(item.quantity ?? 0) <= 10
+  ).length;
+
+  el("totalItems").textContent = items.length;
+  el("borrowedItems").textContent = borrowed;
+  el("lowStock").textContent = lowStock;
+
+  setDatabaseStatus("Connected", "#10b981");
+}
+
+let authCheckStarted = false;
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    if (!authCheckStarted) {
+      authCheckStarted = true;
+      location.replace("../login.html");
+    }
+    return;
+  }
+
+  authCheckStarted = true;
+  el("authStatus").textContent = "Authenticated";
+  el("userBadge").textContent =
+    "👤 " + (user.displayName || user.email || "User");
+
+  hideError();
+
+  try {
+    const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+    if (!profileSnap.exists()) {
+      setDatabaseStatus("Profile missing", "#dc2626");
+      el("status").textContent = "Account profile not found.";
+
+      showError(
+        "Walang users profile para sa account na ito. " +
+        "Gumawa ang administrator ng users/" + user.uid +
+        " document na kapareho ng Firebase Authentication UID."
+      );
+      return;
+    }
+
+    const profile = profileSnap.data();
+    const role = String(profile.role || "").trim().toLowerCase();
+    const name =
+      profile.username ||
+      profile.name ||
+      user.displayName ||
+      user.email ||
+      "User";
+
+    el("userBadge").textContent = "👤 " + name;
+
+    if (
+      String(profile.account_status || "active").toLowerCase() === "blocked"
+    ) {
+      setDatabaseStatus("Account blocked", "#dc2626");
+      el("status").textContent = "Account access has been disabled.";
+      showError("Blocked ang account mo. Makipag-ugnayan sa administrator.");
+      await signOut(auth);
+      location.replace("../login.html");
+      return;
+    }
+
+    // Management menu access only.
+    // The Firestore Rules must also enforce these permissions.
+    const allowedRoles = [
+      "admin",
+      "administrator",
+      "manager",
+      "staff",
+      "faculty"
+    ];
+
+    if (!allowedRoles.includes(role)) {
+      el("status").textContent = "Access denied.";
+      showError(
+        "Hindi pinapayagan ang role na ito sa management menu. " +
+        "Kung worker account ito, gumawa ng hiwalay na worker menu."
+      );
+      return;
+    }
+
+    el("status").textContent = "Loading inventory statistics...";
+    setDatabaseStatus("Loading...");
+
+    try {
+      await loadStats();
+      el("status").textContent = "Kleensure inventory data loaded.";
+    } catch (error) {
+      console.error("Statistics error:", error);
+
+      setDatabaseStatus(
+        error.code === "permission-denied"
+          ? "Permission denied"
+          : "Unavailable",
+        "#dc2626"
+      );
+
+      el("status").textContent =
+        "Profile loaded; inventory statistics unavailable.";
+
+      showError(
+        "Nabasa ang profile pero hindi mabasa ang items o borrow_logs. " +
+        "Tingnan ang Firestore Rules at kung ginagamit pa ng app ang " +
+        "legacy collections na ito."
+      );
+    }
+  } catch (error) {
+    console.error("Profile error:", error);
+
+    setDatabaseStatus("Access error", "#dc2626");
+    el("status").textContent = "Unable to load profile.";
+
+    showError(
+      error.code === "permission-denied"
+        ? "Tinanggihan ng Firestore ang pagbasa sa users/" +
+          user.uid + ". Suriin ang Firestore Rules."
+        : "Hindi mabasa ang profile. Suriin ang Firebase configuration at internet connection."
+    );
+  }
+});
+
+el("logoutBtn").addEventListener("click", async () => {
+  const button = el("logoutBtn");
+
+  button.disabled = true;
+  button.innerHTML =
+    '<i class="fa-solid fa-spinner fa-spin"></i> Signing out...';
+
+  try {
+    await signOut(auth);
+    location.replace("../login.html");
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    showError("Hindi makapag-sign out. Subukan ulit.");
+
+    button.disabled = false;
+    button.innerHTML =
+      '<i class="fa-solid fa-right-from-bracket"></i> Sign Out';
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,527 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Borrow Requests | PTC</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:#0f172a;color:white;overflow-x:hidden;min-height:100vh}
+.navbar{background:linear-gradient(135deg,#00b894,#00cec9);padding:20px 30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;box-shadow:0 5px 20px #0005;position:sticky;top:0;z-index:999}
+.logo{font-size:clamp(22px,3.5vw,32px);font-weight:bold}
+.nav-links{display:flex;gap:10px;flex-wrap:wrap}
+.nav-links a{text-decoration:none;padding:12px 16px;border-radius:12px;background:#ffffff2e;color:white;font-weight:bold;transition:.3s}
+.nav-links a:hover{background:white;color:#00b894;transform:translateY(-2px)}
+.container{padding:30px;max-width:1800px;margin:auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:20px;margin-bottom:30px}
+.stat{padding:25px;border-radius:24px;background:#ffffff12;backdrop-filter:blur(14px);box-shadow:0 8px 30px #0004;transition:.3s}
+.stat:hover{transform:translateY(-5px)}
+.stat h2{font-size:18px;margin-bottom:10px}
+.stat p{font-size:clamp(30px,4vw,40px);font-weight:bold}
+.blue{border-left:6px solid #74b9ff}
+.green{border-left:6px solid #00b894}
+.orange{border-left:6px solid #fdcb6e}
+.red{border-left:6px solid #ff7675}
+.card{background:#ffffff12;backdrop-filter:blur(16px);padding:25px;border-radius:30px;box-shadow:0 10px 30px #0004;min-width:0}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;flex-wrap:wrap;gap:15px}
+.header h1{font-size:clamp(25px,4vw,35px)}
+.search{padding:14px 18px;border:none;border-radius:14px;width:min(100%,320px);font-size:15px}
+.search:focus{outline:2px solid #00cec9}
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:1150px}
+th{background:#00b894;padding:16px;font-size:14px;white-space:nowrap}
+td{padding:16px 12px;border-bottom:1px solid #ffffff15;text-align:center;overflow-wrap:anywhere}
+tbody tr:hover{background:#ffffff0d}
+.user-box{background:#ffffff12;padding:10px;border-radius:16px;min-width:140px}
+.user-box h4{margin-bottom:5px;overflow-wrap:anywhere}
+.user-box p{font-size:12px;color:#ccc;overflow-wrap:anywhere}
+.role,.status{display:inline-block;padding:8px 12px;border-radius:30px;font-size:12px;font-weight:bold;text-transform:capitalize}
+.student{background:#fdcb6e;color:#222}
+.faculty{background:#74b9ff;color:#102a43}
+.admin{background:#00b894;color:#073b32}
+.manager,.officer,.teacher,.staff{background:#a29bfe;color:#201b55}
+.pending{background:#fdcb6e;color:#222}
+.approved{background:#00b894;color:#073b32}
+.rejected{background:#d63031;color:white}
+.damage{color:#ff7675;font-weight:bold}
+.proof{width:80px;height:80px;object-fit:cover;border-radius:14px;transition:.3s;cursor:zoom-in}
+.proof:hover{transform:scale(1.08)}
+.no-proof{font-size:12px;color:#aaa}
+.btn{padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:bold;display:inline-block;transition:.3s;border:0;cursor:pointer;color:white;font-size:13px}
+.approve{background:#00b894}
+.reject{background:#d63031}
+.btn:hover{transform:translateY(-2px);opacity:.9}
+.completed{color:#55efc4;font-weight:bold}
+.footer{text-align:center;padding:25px;color:#aaa;font-size:13px}
+.notice{display:none;padding:14px 17px;margin-bottom:20px;border-radius:12px;line-height:1.6;overflow-wrap:anywhere}
+.notice.show{display:block}
+.notice.error{background:#ffe4e4;color:#8c2020}
+.notice.info{background:#e1f0ff;color:#174778}
+.empty{text-align:center;padding:28px;color:#ddd;line-height:1.7}
+.small-muted{color:#aaa;font-size:12px}
+@media(max-width:768px){.navbar{padding:18px;flex-direction:column;align-items:flex-start}.nav-links{width:100%}.nav-links a{flex:1;text-align:center;font-size:13px;padding:11px 8px}.container{padding:15px}.card{padding:18px;border-radius:22px}.header{align-items:stretch;flex-direction:column}.search{width:100%}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="navbar">
+  <div class="logo">📦 Request Management</div>
+  <nav class="nav-links">
+    <a href="dashboard.html">📊 Dashboard</a>
+    <a href="faculty_borrow_logs.html">📜 Borrow Logs</a>
+    <a href="logout.html">🚪 Logout</a>
+  </nav>
+</header>
+
+<main class="container">
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+  <section class="stats">
+    <div class="stat blue"><h2>Total Requests</h2><p id="totalRequests">—</p></div>
+    <div class="stat orange"><h2>Pending</h2><p id="pendingRequests">—</p></div>
+    <div class="stat green"><h2>Approved</h2><p id="approvedRequests">—</p></div>
+    <div class="stat red"><h2>Rejected</h2><p id="rejectedRequests">—</p></div>
+  </section>
+
+  <section class="card">
+    <div class="header">
+      <h1>📋 Borrow Requests</h1>
+      <input type="search" id="searchInput" class="search"
+        placeholder="Search user, email or item..."
+        aria-label="Search borrow requests">
+    </div>
+
+    <p id="resultCount" class="small-muted" style="margin-bottom:15px">Loading requests…</p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Damage</th>
+            <th>Item</th>
+            <th>Stock</th>
+            <th>Qty</th>
+            <th>Proof</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="requestBody">
+          <tr><td colspan="10">Loading requests…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">PTC Institutional Inventory System © <span id="year"></span></footer>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+
+let allRequests = [];
+let userMap = new Map();
+let itemMap = new Map();
+let actionInProgress = false;
+
+$("year").textContent = new Date().getFullYear();
+
+function showNotice(message, type = "info") {
+  $("notice").textContent = message;
+  $("notice").className = "notice show " + type;
+}
+
+function clearNotice() {
+  $("notice").textContent = "";
+  $("notice").className = "notice";
+}
+
+function normalize(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function numberValue(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getUserId(request) {
+  return String(request.user_id ?? request.userId ?? request.uid ?? "");
+}
+
+function getItemId(request) {
+  return String(request.item_id ?? request.itemId ?? request.itemID ?? "");
+}
+
+function getStatus(request) {
+  return normalize(request.status) || "pending";
+}
+
+function getUser(request) {
+  return userMap.get(getUserId(request)) || {};
+}
+
+function getItem(request) {
+  return itemMap.get(getItemId(request)) || {};
+}
+
+function getUserName(request) {
+  const user = getUser(request);
+  return request.username ||
+    request.user_name ||
+    user.username ||
+    user.fullName ||
+    user.full_name ||
+    user.name ||
+    "Unknown user";
+}
+
+function getEmail(request) {
+  const user = getUser(request);
+  return request.institutional_email ||
+    request.email ||
+    user.institutional_email ||
+    user.email ||
+    "No email";
+}
+
+function getRole(request) {
+  const user = getUser(request);
+  return normalize(request.role || user.role || "unknown");
+}
+
+function getDamageStrikes(request) {
+  const user = getUser(request);
+  return numberValue(
+    request.damage_strikes ??
+    request.damageStrikes ??
+    user.damage_strikes ??
+    user.damageStrikes
+  );
+}
+
+function getItemName(request) {
+  const item = getItem(request);
+  return request.item_name ||
+    request.itemName ||
+    item.item_name ||
+    item.itemName ||
+    item.name ||
+    "Unknown item";
+}
+
+function getStock(request) {
+  const item = getItem(request);
+  return numberValue(
+    request.stock ??
+    item.quantity ??
+    item.stock
+  );
+}
+
+function getQuantity(request) {
+  return numberValue(request.quantity ?? request.qty);
+}
+
+function getProof(request) {
+  return request.proof_borrow ||
+    request.proofBorrow ||
+    request.proof_url ||
+    request.proofUrl ||
+    "";
+}
+
+function getRequestSortId(request) {
+  const id = request.request_id ?? request.requestId ?? request.id;
+  const n = Number(id);
+  return Number.isFinite(n) ? n : String(id ?? "");
+}
+
+function sortRequests(a, b) {
+  const aId = getRequestSortId(a);
+  const bId = getRequestSortId(b);
+
+  if (typeof aId === "number" && typeof bId === "number") {
+    return bId - aId;
+  }
+
+  return String(bId).localeCompare(String(aId), undefined, {numeric:true});
+}
+
+function updateStats() {
+  $("totalRequests").textContent = allRequests.length;
+  $("pendingRequests").textContent =
+    allRequests.filter(r => getStatus(r) === "pending").length;
+  $("approvedRequests").textContent =
+    allRequests.filter(r => getStatus(r) === "approved").length;
+  $("rejectedRequests").textContent =
+    allRequests.filter(r => getStatus(r) === "rejected").length;
+}
+
+function makeCell(text) {
+  const td = document.createElement("td");
+  td.textContent = text == null ? "—" : String(text);
+  return td;
+}
+
+function renderRequests() {
+  const body = $("requestBody");
+  const query = normalize($("searchInput").value);
+
+  const filtered = allRequests.filter(request => {
+    const searchable = [
+      getUserName(request),
+      getEmail(request),
+      getItemName(request),
+      getRole(request),
+      getStatus(request),
+      getUserId(request),
+      request.request_id,
+      request.id
+    ].join(" ").toLowerCase();
+
+    return searchable.includes(query);
+  });
+
+  body.replaceChildren();
+  $("resultCount").textContent =
+    `Showing ${filtered.length} of ${allRequests.length} request(s)`;
+
+  if (!filtered.length) {
+    const row = document.createElement("tr");
+    const cell = makeCell(
+      allRequests.length
+        ? "No requests match your search."
+        : "No borrow requests found."
+    );
+    cell.colSpan = 10;
+    cell.className = "empty";
+    row.appendChild(cell);
+    body.appendChild(row);
+    return;
+  }
+
+  filtered.forEach(request => {
+    const row = document.createElement("tr");
+    const user = document.createElement("div");
+    user.className = "user-box";
+
+    const userName = document.createElement("h4");
+    userName.textContent = getUserName(request);
+
+    const userId = document.createElement("p");
+    userId.textContent = "ID: " + (getUserId(request) || "N/A");
+
+    user.append(userName, userId);
+
+    const userCell = document.createElement("td");
+    userCell.appendChild(user);
+    row.appendChild(userCell);
+
+    row.appendChild(makeCell(getEmail(request)));
+
+    const roleCell = document.createElement("td");
+    const roleBadge = document.createElement("span");
+    const role = getRole(request);
+    roleBadge.className = "role " + (
+      ["student","faculty","admin","manager","officer","teacher","staff"].includes(role)
+        ? role
+        : ""
+    );
+    roleBadge.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+    roleCell.appendChild(roleBadge);
+    row.appendChild(roleCell);
+
+    const damageCell = document.createElement("td");
+    const damage = document.createElement("span");
+    damage.className = "damage";
+    damage.textContent = getDamageStrikes(request) + " Strike(s)";
+    damageCell.appendChild(damage);
+    row.appendChild(damageCell);
+
+    row.appendChild(makeCell("📦 " + getItemName(request)));
+    row.appendChild(makeCell(getStock(request)));
+    row.appendChild(makeCell(getQuantity(request)));
+
+    const proofCell = document.createElement("td");
+    const proofUrl = getProof(request);
+
+    if (proofUrl) {
+      const link = document.createElement("a");
+      link.href = proofUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.setAttribute("aria-label", "Open borrowing proof");
+
+      const image = document.createElement("img");
+      image.src = proofUrl;
+      image.alt = "Borrowing proof";
+      image.className = "proof";
+      image.loading = "lazy";
+      image.onerror = () => {
+        image.remove();
+        link.textContent = "Proof unavailable";
+        link.className = "no-proof";
+      };
+
+      link.appendChild(image);
+      proofCell.appendChild(link);
+    } else {
+      const noProof = document.createElement("span");
+      noProof.className = "no-proof";
+      noProof.textContent = "No proof";
+      proofCell.appendChild(noProof);
+    }
+
+    row.appendChild(proofCell);
+
+    const statusCell = document.createElement("td");
+    const status = getStatus(request);
+    const statusBadge = document.createElement("span");
+
+    statusBadge.className = "status " +
+      (["pending","approved","rejected"].includes(status) ? status : "");
+    statusBadge.textContent =
+      status.charAt(0).toUpperCase() + status.slice(1);
+
+    statusCell.appendChild(statusBadge);
+    row.appendChild(statusCell);
+
+    const actionCell = document.createElement("td");
+
+    if (status === "pending") {
+      const requestDocId = request.id;
+
+      const approveLink = document.createElement("a");
+      approveLink.href = "faculty_action.html?id=" +
+        encodeURIComponent(requestDocId) + "&action=approve";
+      approveLink.className = "btn approve";
+      approveLink.textContent = "✔ Approve";
+
+      const rejectLink = document.createElement("a");
+      rejectLink.href = "faculty_action.html?id=" +
+        encodeURIComponent(requestDocId) + "&action=reject";
+      rejectLink.className = "btn reject";
+      rejectLink.style.marginTop = "10px";
+      rejectLink.textContent = "✖ Reject";
+
+      actionCell.append(approveLink, document.createElement("br"), rejectLink);
+    } else {
+      const completed = document.createElement("span");
+      completed.className = "completed";
+      completed.textContent = "Completed";
+      actionCell.appendChild(completed);
+    }
+
+    row.appendChild(actionCell);
+    body.appendChild(row);
+  });
+}
+
+async function loadRequests() {
+  const [requestsSnap, usersSnap, itemsSnap] = await Promise.all([
+    getDocs(collection(db, "requests")),
+    getDocs(collection(db, "users")),
+    getDocs(collection(db, "items"))
+  ]);
+
+  userMap = new Map();
+  usersSnap.forEach(userDoc => {
+    const user = userDoc.data();
+    userMap.set(userDoc.id, user);
+
+    // Also index by any legacy user_id field.
+    if (user.user_id != null) {
+      userMap.set(String(user.user_id), user);
+    }
+  });
+
+  itemMap = new Map();
+  itemsSnap.forEach(itemDoc => {
+    const item = itemDoc.data();
+    itemMap.set(itemDoc.id, item);
+
+    if (item.item_id != null) {
+      itemMap.set(String(item.item_id), item);
+    }
+
+    if (item.itemId != null) {
+      itemMap.set(String(item.itemId), item);
+    }
+  });
+
+  allRequests = requestsSnap.docs.map(requestDoc => ({
+    id: requestDoc.id,
+    ...requestDoc.data()
+  }));
+
+  allRequests.sort(sortRequests);
+  updateStats();
+  renderRequests();
+}
+
+$("searchInput").addEventListener("input", renderRequests);
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.replace("../login.html");
+    return;
+  }
+
+  clearNotice();
+
+  try {
+    const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+    if (!profileSnap.exists()) {
+      showNotice("Hindi makita ang user profile mo. Makipag-ugnayan sa administrator.", "error");
+      return;
+    }
+
+    const role = normalize(profileSnap.data().role);
+
+    if (!["admin", "faculty"].includes(role)) {
+      showNotice("Admin at faculty accounts lang ang puwedeng mag-manage ng requests.", "error");
+      window.setTimeout(() => window.location.replace("dashboard.html"), 1800);
+      return;
+    }
+
+    await loadRequests();
+  } catch (error) {
+    console.error("Request management load error:", error);
+
+    showNotice(
+      "Hindi ma-load ang requests. Tingnan ang Firestore Rules at collection permissions. " +
+      (error.code || "error") + " — " +
+      (error.message || "Unknown error."),
+      "error"
+    );
+
+    $("requestBody").replaceChildren();
+    const row = document.createElement("tr");
+    const cell = makeCell("Unable to load requests.");
+    cell.colSpan = 10;
+    row.appendChild(cell);
+    $("requestBody").appendChild(row);
+  }
+});
+</script>
+</body>
+</html>

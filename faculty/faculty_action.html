@@ -1,0 +1,544 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PTC Inventory | Request Action</title>
+
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 24px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background:
+        radial-gradient(circle at top left, #087f8c 0, transparent 35%),
+        linear-gradient(135deg, #0f172a, #001f2f);
+    }
+
+    .card {
+      width: 100%;
+      max-width: 560px;
+      padding: 30px;
+      border: 1px solid #ffffff30;
+      border-radius: 26px;
+      background: #ffffff12;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 50px #0005;
+      animation: appear .45s ease;
+    }
+
+    .icon {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 18px;
+      border-radius: 22px;
+      color: #fff;
+      background: linear-gradient(135deg, #00b894, #00cec9);
+      font-size: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #cbd5e1;
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+
+    .notice {
+      display: none;
+      padding: 13px;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .notice.error {
+      display: block;
+      color: #fecaca;
+      background: #7f1d1d66;
+      border: 1px solid #f8717166;
+    }
+
+    .notice.success {
+      display: block;
+      color: #bbf7d0;
+      background: #14532d66;
+      border: 1px solid #4ade8066;
+    }
+
+    .notice.info {
+      display: block;
+      color: #bae6fd;
+      background: #07598566;
+    }
+
+    .details {
+      padding: 18px;
+      border-radius: 18px;
+      background: #ffffff0d;
+      margin-bottom: 20px;
+    }
+
+    .detail {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      padding: 12px 0;
+      border-bottom: 1px solid #ffffff18;
+      line-height: 1.45;
+    }
+
+    .detail:last-child {
+      border-bottom: 0;
+    }
+
+    .detail span {
+      color: #cbd5e1;
+      flex-shrink: 0;
+    }
+
+    .detail strong {
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 20px;
+      background: #fbbf2430;
+      color: #fde68a;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    button, .back {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      min-height: 48px;
+      border: 0;
+      border-radius: 13px;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: .2s;
+    }
+
+    button:hover, .back:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .approve {
+      background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    .reject {
+      background: linear-gradient(135deg, #dc2626, #f87171);
+    }
+
+    .back {
+      margin-top: 12px;
+      background: #ffffff16;
+      border: 1px solid #ffffff24;
+    }
+
+    .footnote {
+      color: #94a3b8;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 20px;
+    }
+
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 420px) {
+      body { padding: 12px; }
+      .card { padding: 20px 16px; }
+      h1 { font-size: 24px; }
+      .detail { font-size: 13px; }
+      .actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="card">
+    <div class="icon"><i class="fa-solid fa-box-open"></i></div>
+    <h1>Borrow Request</h1>
+    <p class="subtitle">PTC Inventory Management System</p>
+
+    <div id="message" class="notice"></div>
+
+    <div id="requestDetails" class="details">
+      <p style="text-align:center;color:#cbd5e1">
+        Loading request details...
+      </p>
+    </div>
+
+    <div class="actions">
+      <button id="approveBtn" class="approve" disabled>
+        <i class="fa-solid fa-check"></i> Approve
+      </button>
+      <button id="rejectBtn" class="reject" disabled>
+        <i class="fa-solid fa-xmark"></i> Reject
+      </button>
+    </div>
+
+    <a class="back" href="faculty_requests.html">
+      <i class="fa-solid fa-arrow-left"></i> Back to Requests
+    </a>
+
+    <p class="footnote">
+      Only authorized Manager, Officer, or Teacher accounts can process
+      borrowing requests. Approval records a 7-day due date.
+    </p>
+  </main>
+
+  <script type="module">
+    import { auth, db } from "./firebase.js";
+
+    import {
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+    import {
+      doc, getDoc, runTransaction, serverTimestamp, Timestamp
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    const $ = id => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const requestId = params.get("id");
+    const action = params.get("action");
+
+    let currentUser = null;
+    let requestData = null;
+    let processing = false;
+
+    const allowedRoles = ["manager", "officer", "teacher"];
+
+    function showMessage(text, type = "info") {
+      const box = $("message");
+      box.className = "notice " + type;
+      box.textContent = text;
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+    }
+
+    function displayDetails(data) {
+      const role = data.role || "Unknown";
+      const status = data.status || "pending";
+
+      $("requestDetails").innerHTML = `
+        <div class="detail">
+          <span>Borrower</span>
+          <strong>${escapeHTML(data.username || data.borrower_name || "Unknown")}</strong>
+        </div>
+        <div class="detail">
+          <span>Email</span>
+          <strong>${escapeHTML(data.institutional_email || data.email || "No email")}</strong>
+        </div>
+        <div class="detail">
+          <span>Role</span>
+          <strong>${escapeHTML(role)}</strong>
+        </div>
+        <div class="detail">
+          <span>Item</span>
+          <strong>${escapeHTML(data.itemName || data.item_name || "Item " + data.item_id)}</strong>
+        </div>
+        <div class="detail">
+          <span>Quantity</span>
+          <strong>${escapeHTML(data.quantity)}</strong>
+        </div>
+        <div class="detail">
+          <span>Request status</span>
+          <strong><span class="status">${escapeHTML(status)}</span></strong>
+        </div>
+        <div class="detail">
+          <span>Requested action</span>
+          <strong>${escapeHTML(action || "Not specified")}</strong>
+        </div>
+      `;
+    }
+
+    function setButtons(enabled) {
+      $("approveBtn").disabled = !enabled;
+      $("rejectBtn").disabled = !enabled;
+    }
+
+    async function loadRequest() {
+      if (!requestId || !["approve", "reject"].includes(action)) {
+        throw new Error("Invalid request. A valid id and action=approve or action=reject are required.");
+      }
+
+      const requestRef = doc(db, "requests", requestId);
+      const requestSnap = await getDoc(requestRef);
+
+      if (!requestSnap.exists()) {
+        throw new Error("Request not found. Check the request document ID.");
+      }
+
+      requestData = { id: requestSnap.id, ...requestSnap.data() };
+
+      const itemId = requestData.item_id ?? requestData.itemId;
+      if (itemId == null) {
+        throw new Error("This request has no item_id/itemId field.");
+      }
+
+      const itemSnap = await getDoc(doc(db, "items", String(itemId)));
+      const itemData = itemSnap.exists() ? itemSnap.data() : {};
+
+      requestData.itemName =
+        itemData.item_name || itemData.name || requestData.item_name || `Item ${itemId}`;
+
+      displayDetails(requestData);
+
+      if (String(requestData.status).toLowerCase() !== "pending") {
+        showMessage("This request has already been processed.", "error");
+        return;
+      }
+
+      setButtons(true);
+    }
+
+    async function processRequest(selectedAction) {
+      if (!currentUser || !requestData || processing) return;
+
+      processing = true;
+      setButtons(false);
+      showMessage("Processing request securely...", "info");
+
+      try {
+        const requestRef = doc(db, "requests", requestId);
+
+        await runTransaction(db, async transaction => {
+          const freshRequest = await transaction.get(requestRef);
+
+          if (!freshRequest.exists()) {
+            throw new Error("Request not found.");
+          }
+
+          const req = freshRequest.data();
+
+          if (String(req.status).toLowerCase() !== "pending") {
+            throw new Error("This request has already been processed.");
+          }
+
+          if (selectedAction === "reject") {
+            transaction.update(requestRef, {
+              status: "rejected",
+              processedBy: currentUser.uid,
+              processedAt: serverTimestamp()
+            });
+            return;
+          }
+
+          const itemId = req.item_id ?? req.itemId;
+          const userId = req.user_id ?? req.userId ?? req.uid;
+
+          if (itemId == null || !userId) {
+            throw new Error("Request is missing item_id or user_id.");
+          }
+
+          const itemRef = doc(db, "items", String(itemId));
+          const userRef = doc(db, "users", String(userId));
+
+          const itemSnap = await transaction.get(itemRef);
+          const userSnap = await transaction.get(userRef);
+
+          if (!itemSnap.exists()) throw new Error("Inventory item not found.");
+          if (!userSnap.exists()) throw new Error("Borrower profile not found.");
+
+          const item = itemSnap.data();
+          const borrower = userSnap.data();
+
+          const quantity = Number(req.quantity);
+          const stock = Number(item.quantity ?? 0);
+          const borrowed = Number(borrower.current_borrowed ?? 0);
+          const limit = Number(borrower.borrow_limit ?? 0);
+
+          if (!Number.isInteger(quantity) || quantity <= 0) {
+            throw new Error("Invalid requested quantity.");
+          }
+
+          if (stock < quantity) {
+            throw new Error("Insufficient stock. Available: " + stock);
+          }
+
+          if (borrowed + quantity > limit) {
+            throw new Error(
+              `Borrow limit exceeded. Current: ${borrowed}; limit: ${limit}.`
+            );
+          }
+
+          const borrowCode =
+            "PTC-" +
+            new Date().toISOString().slice(0, 10).replaceAll("-", "") +
+            "-" +
+            crypto.randomUUID().slice(0, 4).toUpperCase();
+
+          const now = new Date();
+          const due = new Date(now);
+          due.setDate(due.getDate() + 7);
+
+          const logRef = doc(db, "borrow_logs", crypto.randomUUID());
+
+          transaction.update(itemRef, {
+            quantity: stock - quantity
+          });
+
+          transaction.update(userRef, {
+            current_borrowed: borrowed + quantity
+          });
+
+          transaction.set(logRef, {
+            user_id: String(userId),
+            item_id: String(itemId),
+            quantity,
+            username: borrower.username || borrower.name || req.username || "",
+            institutional_email:
+              borrower.institutional_email || borrower.email || req.institutional_email || "",
+            role: borrower.role || req.role || "",
+            proof_borrow: req.proof_borrow || "",
+            status: "borrowed",
+            type: "borrow",
+            borrow_code: borrowCode,
+            date_borrowed: serverTimestamp(),
+            due_date: Timestamp.fromDate(due),
+            request_id: requestId,
+            processed_by: currentUser.uid,
+            created_at: serverTimestamp()
+          });
+
+          transaction.update(requestRef, {
+            status: "approved",
+            borrow_code: borrowCode,
+            processedBy: currentUser.uid,
+            processedAt: serverTimestamp(),
+            due_date: Timestamp.fromDate(due)
+          });
+        });
+
+        showMessage(
+          selectedAction === "approve"
+            ? "Request approved successfully. Stock and borrow records have been updated."
+            : "Request rejected successfully.",
+          "success"
+        );
+
+        await loadRequest();
+        showMessage(
+          selectedAction === "approve"
+            ? "Approved. The due date is 7 days from approval."
+            : "Request rejected.",
+          "success"
+        );
+      } catch (error) {
+        console.error("Request action failed:", error);
+        showMessage(error.message || "Unable to process request.", "error");
+        setButtons(true);
+      } finally {
+        processing = false;
+      }
+    }
+
+    $("approveBtn").addEventListener("click", () => {
+      if (confirm("Approve this request and deduct the requested stock?")) {
+        processRequest("approve");
+      }
+    });
+
+    $("rejectBtn").addEventListener("click", () => {
+      if (confirm("Are you sure you want to reject this request?")) {
+        processRequest("reject");
+      }
+    });
+
+    onAuthStateChanged(auth, async user => {
+      setButtons(false);
+
+      if (!user) {
+        location.href = "login.html";
+        return;
+      }
+
+      currentUser = user;
+
+      try {
+        const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+        if (!profileSnap.exists()) {
+          throw new Error("User profile not found.");
+        }
+
+        const profile = profileSnap.data();
+        const role = String(profile.role || "").toLowerCase().trim();
+
+        if (!allowedRoles.includes(role)) {
+          throw new Error(
+            "Access denied. Only Manager, Officer, and Teacher can process requests."
+          );
+        }
+
+        await loadRequest();
+      } catch (error) {
+        console.error(error);
+        showMessage(error.message || "Could not load request.", "error");
+        $("requestDetails").innerHTML =
+          '<p style="color:#fecaca">Unable to display request details.</p>';
+      }
+    });
+  </script>
+</body>
+</html>

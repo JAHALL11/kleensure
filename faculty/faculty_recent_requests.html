@@ -1,0 +1,233 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faculty Recent Requests | PTC Inventory</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#07111f,#0f172a,#001f2f);min-height:100vh;padding:30px;color:white;overflow-x:hidden}
+.top{max-width:1300px;margin:auto;margin-bottom:20px}
+.top a{display:inline-block;padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:#ffffff14;color:white;transition:.3s;border:1px solid #ffffff12}
+.top a:hover{background:#6c5ce7;transform:translateY(-2px)}
+.card{max-width:1300px;margin:auto;background:#ffffff14;backdrop-filter:blur(15px);padding:35px;border-radius:35px;box-shadow:0 10px 40px #0005}
+.title{font-size:clamp(28px,4vw,45px);font-weight:bold;margin-bottom:30px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:22px}
+.request-card{min-width:0;background:#ffffff0f;padding:24px;border-radius:25px;border:1px solid #ffffff10;transition:.3s;overflow-wrap:anywhere}
+.request-card:hover{transform:translateY(-4px);background:#ffffff17}
+.request-card h3{font-size:25px;margin-bottom:14px}
+.request-card p{margin-top:10px;font-size:16px;line-height:1.5}
+.pending{color:#fdcb6e;font-weight:bold}
+.approved{color:#00ff88;font-weight:bold}
+.rejected{color:#ff7675;font-weight:bold}
+.other-status{color:#81ecec;font-weight:bold}
+.proof-link{display:block;margin-top:18px}
+.proof{width:100%;height:230px;object-fit:cover;border-radius:20px;border:2px solid #ffffff14;display:block}
+.proof-label{font-size:13px;color:#81ecec;margin-top:8px}
+.empty{padding:30px;text-align:center;background:#ffffff0a;border-radius:20px;color:#cbd5e1;line-height:1.7}
+.footer{text-align:center;margin-top:30px;color:#aaa;font-size:13px}
+@media(max-width:600px){body{padding:14px}.card{padding:22px 16px;border-radius:25px}.request-card{padding:19px}.top a{padding:12px 16px}}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+  <a href="faculty_request.html">← Back to Faculty Center</a>
+</div>
+
+<div class="card">
+  <div class="title">📜 Faculty Recent Requests</div>
+
+  <div id="message" class="empty">Checking your account...</div>
+  <div class="grid" id="requestGrid"></div>
+
+  <div class="footer">PTC Institutional Inventory System © 2026</div>
+</div>
+
+<script type="module">
+import {auth,db} from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  collection,doc,getDoc,getDocs,query,where
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const grid=document.getElementById("requestGrid");
+const message=document.getElementById("message");
+
+function showMessage(text){
+  message.textContent=text;
+  message.style.display="block";
+}
+function hideMessage(){
+  message.style.display="none";
+}
+function safeText(value){
+  return String(value??"");
+}
+function formatDate(value){
+  if(!value)return "-";
+  let date;
+  if(typeof value.toDate==="function")date=value.toDate();
+  else date=new Date(value);
+  return Number.isNaN(date.getTime())?"-":date.toLocaleString();
+}
+function addParagraph(parent,label,value){
+  const p=document.createElement("p");
+  p.append(document.createTextNode(label+" "));
+  const b=document.createElement("b");
+  b.textContent=safeText(value);
+  p.append(b);
+  parent.append(p);
+}
+
+async function loadRequests(user){
+  const userSnap=await getDoc(doc(db,"users",user.uid));
+
+  if(!userSnap.exists()){
+    throw new Error("Hindi makita ang user profile sa Firestore.");
+  }
+
+  const userData=userSnap.data();
+
+  if(String(userData.role||"").toLowerCase()!=="faculty"){
+    location.href="login.html";
+    return;
+  }
+
+  // Assumes requests.user_id stores the Firebase Auth UID.
+  const requestQuery=query(
+    collection(db,"requests"),
+    where("user_id","==",user.uid)
+  );
+
+  const snapshot=await getDocs(requestQuery);
+
+  const requests=snapshot.docs.map(item=>({
+    id:item.id,
+    ...item.data()
+  }));
+
+  requests.sort((a,b)=>{
+    const toMillis=value=>{
+      if(!value)return 0;
+      if(typeof value.toMillis==="function")return value.toMillis();
+      const d=new Date(value);
+      return Number.isNaN(d.getTime())?0:d.getTime();
+    };
+    return toMillis(b.request_date)-toMillis(a.request_date);
+  });
+
+  grid.replaceChildren();
+
+  if(requests.length===0){
+    showMessage("📭 Wala ka pang borrow requests.");
+    return;
+  }
+
+  hideMessage();
+
+  // Load item names; use the request's saved item_name if lookup fails.
+  const itemIds=[...new Set(
+    requests.map(r=>r.item_id).filter(id=>id!=null).map(String)
+  )];
+
+  const itemPairs=await Promise.all(itemIds.map(async id=>{
+    try{
+      const itemSnap=await getDoc(doc(db,"items",id));
+      if(!itemSnap.exists())return [id,null];
+      const data=itemSnap.data();
+      return [id,data.item_name||data.name||null];
+    }catch(error){
+      console.warn("Could not load item:",id,error);
+      return [id,null];
+    }
+  }));
+
+  const itemNames=new Map(itemPairs);
+
+  for(const request of requests){
+    const card=document.createElement("div");
+    card.className="request-card";
+
+    const itemName=request.item_name||
+      itemNames.get(String(request.item_id))||
+      "Deleted Item";
+
+    const heading=document.createElement("h3");
+    heading.textContent="📦 "+itemName;
+    card.append(heading);
+
+    addParagraph(card,"Quantity:",request.quantity??"-");
+
+    const statusText=String(request.status||"unknown").toLowerCase();
+    const statusP=document.createElement("p");
+    statusP.append(document.createTextNode("Status: "));
+
+    const statusSpan=document.createElement("span");
+    statusSpan.className=["pending","approved","rejected"].includes(statusText)
+      ?statusText:"other-status";
+    statusSpan.textContent=statusText.charAt(0).toUpperCase()+statusText.slice(1);
+    statusP.append(statusSpan);
+    card.append(statusP);
+
+    addParagraph(card,"Date:",formatDate(request.request_date));
+
+    const proofUrl=request.proof_borrow;
+
+    if(typeof proofUrl==="string"&&/^https:\/\//i.test(proofUrl)){
+      const link=document.createElement("a");
+      link.className="proof-link";
+      link.href=proofUrl;
+      link.target="_blank";
+      link.rel="noopener noreferrer";
+      link.setAttribute("aria-label","Open borrow proof image in a new tab");
+
+      const image=document.createElement("img");
+      image.className="proof";
+      image.src=proofUrl;
+      image.alt="Borrow request proof";
+      image.loading="lazy";
+      image.onerror=()=>{
+        link.replaceChildren();
+        const fallback=document.createElement("p");
+        fallback.textContent="Hindi ma-load ang proof image. Buksan ang proof link kung available.";
+        link.append(fallback);
+      };
+
+      link.append(image);
+      card.append(link);
+
+      const label=document.createElement("p");
+      label.className="proof-label";
+      label.textContent="🔍 Tap image to view full proof";
+      card.append(label);
+    }
+
+    grid.append(card);
+  }
+}
+
+onAuthStateChanged(auth,async user=>{
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  try{
+    await loadRequests(user);
+  }catch(error){
+    console.error("Recent requests error:",error);
+    showMessage(error.message||"Hindi ma-load ang requests. Tingnan ang Firestore rules at connection.");
+  }
+});
+</script>
+
+</body>
+</html>

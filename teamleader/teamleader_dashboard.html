@@ -1,0 +1,239 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Dashboard | PTC</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#07111f,#0f172a,#001f2f);min-height:100vh;padding:30px;color:white;overflow-x:hidden}
+.header{max-width:1400px;margin:0 auto 30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.logo{font-size:40px;font-weight:bold}
+.nav{display:flex;gap:15px;flex-wrap:wrap}
+.nav a{padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:#ffffff14;backdrop-filter:blur(12px);border:1px solid #ffffff14;color:white;transition:.3s}
+.nav a:hover{background:#00cec9;color:#0f172a;transform:translateY(-2px)}
+.profile{max-width:1400px;margin:0 auto 30px;background:#ffffff14;backdrop-filter:blur(15px);padding:35px;border-radius:35px;box-shadow:0 10px 40px #0005}
+.profile-top{display:flex;align-items:center;gap:25px;flex-wrap:wrap}
+.avatar{width:120px;height:120px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,#00b894,#00cec9);display:flex;justify-content:center;align-items:center;font-size:50px;font-weight:bold;color:#fff}
+.info h1{font-size:38px;margin-bottom:10px;overflow-wrap:anywhere}
+.info p{font-size:16px;margin-bottom:8px;color:#ddd;overflow-wrap:anywhere}
+.stats{max-width:1400px;margin:0 auto 30px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+.stat{padding:25px;border-radius:25px;background:#ffffff14;backdrop-filter:blur(15px);border:1px solid #ffffff14;box-shadow:0 10px 35px #0005}
+.stat h3{font-size:16px;margin-bottom:10px;color:#81ecec}
+.stat p{font-size:38px;font-weight:bold}
+.grid{max-width:1400px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:25px}
+.card{background:#ffffff14;backdrop-filter:blur(15px);padding:35px;border-radius:35px;box-shadow:0 10px 40px #0005;transition:.3s;text-align:center;border:1px solid #ffffff0a}
+.card:hover{transform:translateY(-5px) scale(1.02)}
+.icon{font-size:65px;margin-bottom:20px}
+.card h2{font-size:28px;margin-bottom:15px}
+.card p{color:#ccc;margin-bottom:25px;line-height:1.6}
+.card a{display:inline-block;padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:linear-gradient(135deg,#00b894,#00cec9);color:white;transition:.3s}
+.card a:hover{opacity:.9;transform:translateY(-2px)}
+.footer{text-align:center;margin-top:35px;color:#aaa;font-size:13px}
+.notice{display:none;max-width:1400px;margin:0 auto 20px;padding:15px;border-radius:12px;line-height:1.5;overflow-wrap:anywhere}
+.notice.show{display:block}
+.notice.error{background:#ffe2e2;color:#8a1e1e}
+.notice.info{background:#dff4ff;color:#174778}
+.loading{opacity:.7}
+@media(max-width:768px){body{padding:15px}.profile-top{flex-direction:column;text-align:center}.info h1{font-size:32px}.logo{font-size:30px}.profile{padding:25px}.nav{width:100%}.nav a{flex:1;text-align:center}.card{padding:28px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+  <div class="logo">🎓 Student Dashboard</div>
+  <nav class="nav">
+    <a href="student_profile.html">👤 My Profile</a>
+    <a href="logout.html">🚪 Logout</a>
+  </nav>
+</header>
+
+<div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+<section class="profile">
+  <div class="profile-top">
+    <div class="avatar" id="avatar">…</div>
+    <div class="info">
+      <h1 id="username">Loading profile…</h1>
+      <p>📧 <span id="email">—</span></p>
+      <p>🎓 Role: <span id="role">—</span></p>
+      <p>📦 Borrow Limit: <span id="borrowLimit">—</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <h3>📨 Total Requests</h3>
+    <p id="totalRequests">—</p>
+  </div>
+  <div class="stat">
+    <h3>📦 Borrowed Items</h3>
+    <p id="totalBorrowed">—</p>
+  </div>
+  <div class="stat">
+    <h3>✅ Returned Items</h3>
+    <p id="totalReturned">—</p>
+  </div>
+</section>
+
+<section class="grid">
+  <div class="card">
+    <div class="icon">📦</div>
+    <h2>Borrow Item</h2>
+    <p>Request school equipment and upload borrow proof.</p>
+    <a href="request.html">Open</a>
+  </div>
+
+  <div class="card">
+    <div class="icon">📜</div>
+    <h2>Borrow Logs</h2>
+    <p>View your borrowing history and status.</p>
+    <a href="student_borrow_logs.html">Open</a>
+  </div>
+
+  <div class="card">
+    <div class="icon">👤</div>
+    <h2>My Profile</h2>
+    <p>View your account information and statistics.</p>
+    <a href="student_profile.html">Open</a>
+  </div>
+
+  <div class="card">
+    <div class="icon">📨</div>
+    <h2>My Requests</h2>
+    <p>Monitor pending, approved, and rejected requests.</p>
+    <a href="request.html">Open</a>
+  </div>
+</section>
+
+<footer class="footer">
+  PTC Institutional Inventory System © <span id="year"></span>
+</footer>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  collection, doc, getDoc, getDocs, query, where
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+$("year").textContent = new Date().getFullYear();
+
+function showNotice(message, type = "info") {
+  $("notice").textContent = message;
+  $("notice").className = "notice show " + type;
+}
+
+function setStat(id, value) {
+  $(id).textContent = String(value);
+}
+
+function normalizeRole(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+async function loadDashboard(user) {
+  const profileRef = doc(db, "users", user.uid);
+  const profileSnap = await getDoc(profileRef);
+
+  if (!profileSnap.exists()) {
+    showNotice(
+      "Hindi makita ang Firestore profile mo. Tingnan kung may users/" +
+      user.uid + " document o makipag-ugnayan sa administrator.",
+      "error"
+    );
+    $("username").textContent = "Profile not found";
+    $("avatar").textContent = "?";
+    return;
+  }
+
+  const profile = profileSnap.data();
+  const role = normalizeRole(profile.role);
+
+  // Match the PHP rule: admins cannot use the student dashboard.
+  if (role === "admin") {
+    window.location.replace("menu.html");
+    return;
+  }
+
+  const username = profile.username || user.displayName || "Student";
+  const email = profile.institutional_email || user.email || "No email";
+  const borrowLimit = Number(profile.borrow_limit ?? 2);
+
+  $("username").textContent = username;
+  $("avatar").textContent = username.trim().charAt(0).toUpperCase() || "?";
+  $("email").textContent = email;
+  $("role").textContent = role
+    ? role.charAt(0).toUpperCase() + role.slice(1)
+    : "Unknown";
+  $("borrowLimit").textContent = Number.isFinite(borrowLimit)
+    ? borrowLimit
+    : 2;
+
+  const requestsQuery = query(
+    collection(db, "requests"),
+    where("user_id", "==", user.uid)
+  );
+
+  const borrowedQuery = query(
+    collection(db, "borrow_logs"),
+    where("user_id", "==", user.uid),
+    where("status", "==", "borrowed")
+  );
+
+  const returnedQuery = query(
+    collection(db, "borrow_logs"),
+    where("user_id", "==", user.uid),
+    where("status", "==", "returned")
+  );
+
+  const [requestsSnap, borrowedSnap, returnedSnap] = await Promise.all([
+    getDocs(requestsQuery),
+    getDocs(borrowedQuery),
+    getDocs(returnedQuery)
+  ]);
+
+  setStat("totalRequests", requestsSnap.size);
+  setStat("totalBorrowed", borrowedSnap.size);
+  setStat("totalReturned", returnedSnap.size);
+}
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  try {
+    $("username").classList.add("loading");
+    await loadDashboard(user);
+  } catch (error) {
+    console.error("Student dashboard error:", error);
+
+    showNotice(
+      "Hindi ma-load ang dashboard. Suriin ang Firestore Rules, profile document, at query permissions. " +
+      (error.code || "") + " " + (error.message || ""),
+      "error"
+    );
+
+    setStat("totalRequests", "—");
+    setStat("totalBorrowed", "—");
+    setStat("totalReturned", "—");
+  } finally {
+    $("username").classList.remove("loading");
+  }
+});
+</script>
+</body>
+</html>

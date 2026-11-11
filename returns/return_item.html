@@ -1,0 +1,501 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Return System | PTC</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#07111f,#0f172a,#001f2f);min-height:100vh;padding:30px;color:white}
+.container{max-width:750px;margin:auto;background:#ffffff12;backdrop-filter:blur(18px);padding:35px;border-radius:35px;box-shadow:0 10px 40px #0006;border:1px solid #ffffff12}
+.title{font-size:clamp(30px,5vw,42px);font-weight:bold;margin-bottom:25px}
+.info{background:#ffffff0f;padding:25px;border-radius:20px;line-height:2;margin-bottom:25px;overflow-wrap:anywhere}
+.info b{color:#81ecec}
+input,textarea,select{width:100%;padding:16px;margin-top:10px;margin-bottom:18px;border:none;border-radius:16px;font-size:15px;background:#fffffff5;color:#142033}
+textarea{resize:vertical;min-height:120px}
+input:focus,textarea:focus,select:focus{outline:2px solid #00cec9}
+button{width:100%;padding:18px;margin-top:8px;border:none;border-radius:18px;font-size:18px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,#00b894,#00cec9);color:white;transition:.3s}
+button:hover{transform:translateY(-2px)}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.proof-image{width:130px;height:130px;object-fit:cover;border-radius:20px;margin-top:12px;border:4px solid #ffffff1a}
+.back{display:inline-block;margin-bottom:20px;padding:14px 22px;border-radius:15px;background:#ffffff14;text-decoration:none;font-weight:bold;color:white;transition:.3s}
+.back:hover{background:#00cec9;color:#07111f}
+.footer{text-align:center;margin-top:25px;color:#aaa;font-size:13px}
+.notice{display:none;padding:14px 16px;border-radius:12px;margin-bottom:20px;line-height:1.6;overflow-wrap:anywhere}
+.notice.show{display:block}
+.notice.error{background:#ffe2e2;color:#8a1e1e}
+.notice.success{background:#d9fff2;color:#075d46}
+.notice.info{background:#e1f0ff;color:#174778}
+.field-label{display:block;font-weight:bold;margin-top:6px}
+.muted{font-size:13px;color:#b9c7d5;line-height:1.6;margin-top:-10px;margin-bottom:15px}
+#returnPreview{display:none;max-width:180px;max-height:180px;object-fit:cover;border-radius:15px;margin:0 0 18px}
+#returnPreview.show{display:block}
+@media(max-width:600px){body{padding:15px}.container{padding:22px;border-radius:24px}.info{padding:18px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+</style>
+</head>
+
+<body>
+<main class="container">
+  <a href="faculty_borrow_logs.html" class="back">← Back to Borrow Logs</a>
+  <div class="title">↩ Return Item</div>
+
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+  <section class="info">
+    <b>Borrower:</b> <span id="borrowerName">Loading…</span><br>
+    <b>Email:</b> <span id="borrowerEmail">—</span><br>
+    <b>Borrow Code:</b> <span id="borrowCodeDisplay">—</span><br>
+    <b>Quantity:</b> <span id="borrowQuantity">—</span><br>
+    <b>Borrow Date:</b> <span id="borrowDate">—</span><br>
+    <b>Due Date:</b> <span id="dueDate">—</span><br>
+    <b>Borrow Status:</b> <span id="borrowStatus">—</span><br>
+    <b>Borrow Proof:</b><br>
+    <a id="borrowProofLink" href="#" target="_blank" rel="noopener noreferrer" style="display:none">
+      <img id="borrowProofImage" class="proof-image" alt="Borrow proof">
+    </a>
+    <span id="noBorrowProof" class="muted">No borrowing proof available.</span>
+  </section>
+
+  <form id="returnForm">
+    <label class="field-label" for="proofReturn">Proof of Return (required)</label>
+    <input type="file" id="proofReturn" accept="image/*" required>
+    <p class="muted">Image file lang, maximum 5 MB.</p>
+    <img id="returnPreview" alt="Return proof preview">
+
+    <label class="field-label" for="returnCondition">Return Condition Notes</label>
+    <textarea id="returnCondition" placeholder="Describe the item's condition..." maxlength="2000" required></textarea>
+
+    <label class="field-label" for="returnStatus">Return Status</label>
+    <select id="returnStatus" required>
+      <option value="good">Good Condition</option>
+      <option value="damaged">Damaged</option>
+      <option value="missing_parts">Missing Parts</option>
+      <option value="broken">Broken</option>
+    </select>
+
+    <label class="field-label" for="enteredCode">Borrow Code Verification</label>
+    <input type="text" id="enteredCode" placeholder="Enter Borrow Code" autocomplete="off" required>
+
+    <button id="submitButton" type="submit" disabled>✅ Confirm Return</button>
+  </form>
+
+  <div class="footer">PTC Institutional Inventory System © <span id="year"></span></div>
+</main>
+
+<script type="module">
+import { auth, db, storage } from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  doc, getDoc, collection, addDoc, runTransaction, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+import {
+  ref, uploadBytes, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+
+const $ = id => document.getElementById(id);
+$("year").textContent = new Date().getFullYear();
+
+const params = new URLSearchParams(window.location.search);
+const logId = params.get("id");
+
+let currentUser = null;
+let borrowLog = null;
+let borrowerProfile = null;
+let itemData = null;
+let isSubmitting = false;
+
+function showNotice(message, type = "info") {
+  $("notice").textContent = message;
+  $("notice").className = "notice show " + type;
+}
+
+function clearNotice() {
+  $("notice").textContent = "";
+  $("notice").className = "notice";
+}
+
+function normalize(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getBorrowerId(log) {
+  return String(log.user_id ?? log.userId ?? log.uid ?? "");
+}
+
+function getItemId(log) {
+  return String(log.item_id ?? log.itemId ?? "");
+}
+
+function getQuantity(log) {
+  const quantity = Number(log.quantity ?? log.qty ?? 0);
+  return Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 0;
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  let date;
+
+  if (typeof value.toDate === "function") date = value.toDate();
+  else date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+}
+
+function itemName(item) {
+  return item?.item_name || item?.itemName || item?.name || "Unknown item";
+}
+
+function getProofUrl(log) {
+  return log?.proof_borrow || log?.proofBorrow || "";
+}
+
+function setSubmitEnabled(enabled) {
+  $("submitButton").disabled = !enabled || isSubmitting;
+}
+
+function renderBorrowInfo() {
+  const log = borrowLog;
+  const user = borrowerProfile || {};
+
+  $("borrowerName").textContent =
+    log.username || log.user_name || user.username ||
+    user.fullName || user.full_name || user.name || "Unknown user";
+
+  $("borrowerEmail").textContent =
+    log.institutional_email || log.email ||
+    user.institutional_email || user.email || "—";
+
+  $("borrowCodeDisplay").textContent = log.borrow_code || log.borrowCode || "Not set";
+  $("borrowQuantity").textContent = getQuantity(log);
+  $("borrowDate").textContent = formatDate(log.date_borrowed || log.dateBorrowed || log.borrow_date);
+  $("dueDate").textContent = formatDate(log.due_date || log.dueDate);
+  $("borrowStatus").textContent = log.status || "—";
+
+  const proofUrl = getProofUrl(log);
+  if (proofUrl) {
+    $("borrowProofLink").href = proofUrl;
+    $("borrowProofImage").src = proofUrl;
+    $("borrowProofLink").style.display = "inline-block";
+    $("noBorrowProof").style.display = "none";
+  } else {
+    $("borrowProofLink").style.display = "none";
+    $("noBorrowProof").style.display = "inline";
+  }
+}
+
+async function loadBorrowRecord() {
+  if (!logId) {
+    showNotice("Invalid return request: missing borrow log ID.", "error");
+    setSubmitEnabled(false);
+    return false;
+  }
+
+  const logSnap = await getDoc(doc(db, "borrow_logs", logId));
+
+  if (!logSnap.exists()) {
+    showNotice("Borrow record not found.", "error");
+    setSubmitEnabled(false);
+    return false;
+  }
+
+  borrowLog = { id: logSnap.id, ...logSnap.data() };
+
+  if (normalize(borrowLog.status) !== "borrowed") {
+    showNotice("Ang record na ito ay hindi na active na borrowed item.", "error");
+    setSubmitEnabled(false);
+    return false;
+  }
+
+  const borrowerId = getBorrowerId(borrowLog);
+  const itemId = getItemId(borrowLog);
+
+  if (!borrowerId || !itemId || getQuantity(borrowLog) < 1) {
+    showNotice("Incomplete ang borrow record. Ipa-check ito sa administrator.", "error");
+    setSubmitEnabled(false);
+    return false;
+  }
+
+  const [userSnap, itemSnap] = await Promise.all([
+    getDoc(doc(db, "users", borrowerId)),
+    getDoc(doc(db, "items", itemId))
+  ]);
+
+  borrowerProfile = userSnap.exists() ? userSnap.data() : {};
+  itemData = itemSnap.exists() ? itemSnap.data() : null;
+
+  renderBorrowInfo();
+  return true;
+}
+
+$("proofReturn").addEventListener("change", () => {
+  const file = $("proofReturn").files?.[0];
+  const preview = $("returnPreview");
+
+  if (!file) {
+    preview.removeAttribute("src");
+    preview.classList.remove("show");
+    return;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    $("proofReturn").value = "";
+    preview.classList.remove("show");
+    showNotice("Image files lang ang puwedeng i-upload.", "error");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    $("proofReturn").value = "";
+    preview.classList.remove("show");
+    showNotice("Maximum file size ay 5 MB.", "error");
+    return;
+  }
+
+  preview.src = URL.createObjectURL(file);
+  preview.classList.add("show");
+  clearNotice();
+});
+
+$("returnForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (!currentUser || !borrowLog || isSubmitting) return;
+  clearNotice();
+
+  const enteredCode = $("enteredCode").value.trim();
+  const expectedCode = String(
+    borrowLog.borrow_code ?? borrowLog.borrowCode ?? ""
+  ).trim();
+
+  const returnCondition = $("returnCondition").value.trim();
+  const returnStatus = $("returnStatus").value;
+  const proofFile = $("proofReturn").files?.[0];
+
+  if (!expectedCode) {
+    showNotice("Walang borrow code sa record. Makipag-ugnayan sa administrator.", "error");
+    return;
+  }
+
+  if (enteredCode !== expectedCode) {
+    showNotice("Invalid Borrow Code!", "error");
+    return;
+  }
+
+  if (!returnCondition) {
+    showNotice("Ilagay ang return condition notes.", "error");
+    return;
+  }
+
+  if (!["good", "damaged", "missing_parts", "broken"].includes(returnStatus)) {
+    showNotice("Invalid return status.", "error");
+    return;
+  }
+
+  if (!proofFile || !proofFile.type.startsWith("image/")) {
+    showNotice("Required ang proof of return image.", "error");
+    return;
+  }
+
+  if (proofFile.size > 5 * 1024 * 1024) {
+    showNotice("Maximum file size ay 5 MB.", "error");
+    return;
+  }
+
+  isSubmitting = true;
+  setSubmitEnabled(false);
+  $("submitButton").textContent = "⏳ Processing return…";
+
+  let uploadedPath = null;
+  let returnSaved = false;
+
+  try {
+    const borrowerId = getBorrowerId(borrowLog);
+    const itemId = getItemId(borrowLog);
+    const quantity = getQuantity(borrowLog);
+
+    // Upload return proof first.
+    const safeName = proofFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    uploadedPath =
+      `return_proofs/${currentUser.uid}/${logId}_${Date.now()}_${safeName}`;
+
+    const proofRef = ref(storage, uploadedPath);
+    await uploadBytes(proofRef, proofFile, {
+      contentType: proofFile.type
+    });
+    const proofUrl = await getDownloadURL(proofRef);
+
+    // Recheck ownership and status, then update all stock/count changes atomically.
+    await runTransaction(db, async transaction => {
+      const logRef = doc(db, "borrow_logs", logId);
+      const itemRef = doc(db, "items", itemId);
+      const borrowerRef = doc(db, "users", borrowerId);
+
+      const [freshLogSnap, freshItemSnap, freshUserSnap] = await Promise.all([
+        transaction.get(logRef),
+        transaction.get(itemRef),
+        transaction.get(borrowerRef)
+      ]);
+
+      if (!freshLogSnap.exists()) throw new Error("Borrow record not found.");
+      if (!freshItemSnap.exists()) throw new Error("Item record not found.");
+      if (!freshUserSnap.exists()) throw new Error("Borrower profile not found.");
+
+      const freshLog = freshLogSnap.data();
+
+      if (normalize(freshLog.status) !== "borrowed") {
+        throw new Error("This item has already been returned or is not active.");
+      }
+
+      if (getBorrowerId(freshLog) !== borrowerId ||
+          getItemId(freshLog) !== itemId ||
+          getQuantity(freshLog) !== quantity) {
+        throw new Error("Nagbago ang borrow record. I-refresh at subukan ulit.");
+      }
+
+      const freshUser = freshUserSnap.data();
+      const currentBorrowed = Math.max(
+        0,
+        Number(freshUser.current_borrowed ?? quantity) || 0
+      );
+      const currentStock = Math.max(
+        0,
+        Number(freshItemSnap.data().quantity ?? 0) || 0
+      );
+
+      const damaged = ["damaged", "missing_parts", "broken"].includes(returnStatus);
+
+      transaction.update(logRef, {
+        status: "returned",
+        date_returned: serverTimestamp(),
+        proof_return: proofUrl,
+        proof_return_path: uploadedPath,
+        return_condition: returnCondition,
+        return_status: returnStatus,
+        maintenance_status: damaged ? "needs_repair" : "normal",
+        returned_by: currentUser.uid
+      });
+
+      transaction.update(itemRef, {
+        quantity: currentStock + quantity
+      });
+
+      const userUpdate = {
+        current_borrowed: Math.max(0, currentBorrowed - quantity)
+      };
+
+      if (["damaged", "missing_parts"].includes(returnStatus)) {
+        userUpdate.damage_strikes =
+          Math.max(0, Number(freshUser.damage_strikes ?? 0) || 0) + 1;
+      }
+
+      transaction.update(borrowerRef, userUpdate);
+    });
+
+    // Record the return event. This is separate from the stock transaction.
+    // If this write fails, the borrow return has already been committed.
+    try {
+      await addDoc(collection(db, "return_logs"), {
+        borrow_log_id: logId,
+        user_id: getBorrowerId(borrowLog),
+        item_id: getItemId(borrowLog),
+        quantity: getQuantity(borrowLog),
+        proof_return: await getDownloadURL(ref(storage, uploadedPath)),
+        proof_path: uploadedPath,
+        return_condition: returnCondition,
+        return_status: returnStatus,
+        returned_by: currentUser.uid,
+        return_date: serverTimestamp()
+      });
+      returnSaved = true;
+    } catch (logError) {
+      console.error("Return committed but return_logs write failed:", logError);
+      showNotice(
+        "Na-update ang return at stock, pero hindi naisulat ang hiwalay na return log. Ipa-check sa administrator.",
+        "error"
+      );
+      window.setTimeout(() => {
+        window.location.replace("faculty_borrow_logs.html");
+      }, 2500);
+      return;
+    }
+
+    showNotice("Item returned successfully!", "success");
+    $("submitButton").textContent = "✅ Return Completed";
+
+    window.setTimeout(() => {
+      window.location.replace("faculty_borrow_logs.html");
+    }, 1200);
+
+  } catch (error) {
+    console.error("Return processing error:", error);
+
+    // Delete proof only when the return transaction failed.
+    if (uploadedPath && !returnSaved) {
+      try {
+        await deleteObject(ref(storage, uploadedPath));
+      } catch (cleanupError) {
+        console.warn("Proof cleanup failed:", cleanupError);
+      }
+    }
+
+    showNotice(
+      "Hindi na-process ang return. " +
+      (error.code || "") + " " +
+      (error.message || "Subukan ulit."),
+      "error"
+    );
+
+    isSubmitting = false;
+    $("submitButton").textContent = "✅ Confirm Return";
+    setSubmitEnabled(true);
+  }
+});
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  currentUser = user;
+
+  try {
+    const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+    if (!profileSnap.exists()) {
+      showNotice("Hindi makita ang user profile mo.", "error");
+      setSubmitEnabled(false);
+      return;
+    }
+
+    const role = normalize(profileSnap.data().role);
+    if (!["faculty", "admin", "manager", "officer", "teacher"].includes(role)) {
+      showNotice("Wala kang permission na mag-process ng item returns.", "error");
+      setSubmitEnabled(false);
+      return;
+    }
+
+    const loaded = await loadBorrowRecord();
+    if (loaded) setSubmitEnabled(true);
+
+  } catch (error) {
+    console.error("Return page loading error:", error);
+    showNotice(
+      "Hindi ma-load ang borrow record. Suriin ang Firestore Rules. " +
+      (error.code || "") + " " + (error.message || ""),
+      "error"
+    );
+    setSubmitEnabled(false);
+  }
+});
+</script>
+</body>
+</html>

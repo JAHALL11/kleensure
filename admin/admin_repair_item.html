@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Repair Item</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:linear-gradient(135deg,#07111f,#0f172a,#001f2f);min-height:100vh;padding:22px;color:white}
+.wrapper{max-width:750px;margin:auto}
+.back{display:inline-block;margin-bottom:20px;padding:14px 22px;border-radius:16px;text-decoration:none;font-weight:bold;background:#ffffff14;color:white;transition:.3s}
+.back:hover{background:#6c5ce7}
+.card{background:#ffffff14;backdrop-filter:blur(15px);border:1px solid #ffffff12;border-radius:28px;padding:clamp(22px,5vw,40px);box-shadow:0 10px 40px #0006}
+.title{font-size:clamp(27px,5vw,42px);font-weight:bold;margin-bottom:25px}
+.damage-box{background:linear-gradient(135deg,#ff4757,#ff6b81);padding:20px;border-radius:18px;font-weight:bold;margin-bottom:25px;animation:pulse 1.5s infinite;box-shadow:0 0 25px #ff475773}
+.info{background:#ffffff0f;padding:22px;border-radius:18px;line-height:2;overflow-wrap:anywhere;margin-bottom:20px}
+.info b{color:#81ecec}
+.proof{display:block;width:100%;max-height:350px;object-fit:contain;background:#0003;border-radius:20px;margin:20px 0;border:2px solid #ffffff15}
+label{display:block;margin:20px 0 8px;font-weight:bold}
+textarea{width:100%;min-height:140px;padding:16px;border:none;border-radius:15px;font-size:15px;resize:vertical;background:#fffffff2;color:#222}
+button{width:100%;padding:17px;margin-top:22px;border:none;border-radius:16px;font-size:17px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,#00b894,#55efc4);color:#0f172a;transition:.3s}
+button:hover{transform:translateY(-2px)}
+button:disabled{opacity:.55;cursor:wait;transform:none}
+.message{display:none;margin:16px 0;padding:13px;border-radius:12px;line-height:1.5;overflow-wrap:anywhere}
+.message.show{display:block}
+.error{background:#ff475733;border:1px solid #ff6b81}
+.success{background:#00b89430;border:1px solid #55efc4}
+.footer{text-align:center;margin-top:25px;color:#aaa;font-size:13px}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.01)}}
+@media(max-width:500px){body{padding:15px}.info{padding:16px}}
+</style>
+</head>
+
+<body>
+<div class="wrapper">
+  <a href="borrow_logs.html" class="back">← Back to Borrow Logs</a>
+
+  <main class="card">
+    <div class="title">🛠 Admin Repair Center</div>
+
+    <div id="message" class="message" role="status"></div>
+    <div id="content">Loading repair record...</div>
+
+    <form id="repairForm" hidden>
+      <label for="repair_notes">Repair / Replacement Notes *</label>
+      <textarea id="repair_notes" maxlength="2000"
+        placeholder="Enter repair notes, replacement action, or maintenance details..."
+        required></textarea>
+      <button id="repairButton" type="submit">🔧 Confirm Repair</button>
+    </form>
+  </main>
+
+  <div class="footer">PTC Institutional Inventory System © 2026</div>
+</div>
+
+<script type="module">
+import { initializeApp } from
+  "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCik-MVlxK6cshGy87dXOi10a0_c52cO1w",
+  authDomain: "inventory-4f2b5.firebaseapp.com",
+  projectId: "inventory-4f2b5",
+  storageBucket: "inventory-4f2b5.firebasestorage.app",
+  messagingSenderId: "185805306294",
+  appId: "1:185805306294:web:d674bd3c32b9994fa46917",
+  measurementId: "G-5KCN8KL8ET"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const content = document.getElementById("content");
+const form = document.getElementById("repairForm");
+const notesInput = document.getElementById("repair_notes");
+const repairButton = document.getElementById("repairButton");
+const message = document.getElementById("message");
+
+let activeLogId = null;
+let activeLog = null;
+let activeUser = null;
+let saving = false;
+
+function showMessage(text, type = "error") {
+  message.textContent = text;
+  message.className = `message show ${type}`;
+}
+
+function escapeHTML(value = "") {
+  return String(value).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
+function showDate(value) {
+  if (!value) return "—";
+  if (typeof value.toDate === "function") {
+    return value.toDate().toLocaleString();
+  }
+  return escapeHTML(value);
+}
+
+function readableError(error) {
+  console.error(error);
+  if (error.code === "permission-denied") {
+    return "Access denied. Check your admin role and Firebase security rules.";
+  }
+  if (error.code === "unavailable") {
+    return "Cannot connect to Firebase. Check your internet connection.";
+  }
+  return error.message || "An unexpected error occurred.";
+}
+
+function getLogId() {
+  return new URLSearchParams(location.search).get("id");
+}
+
+async function loadRepairRecord(user) {
+  activeUser = user;
+  activeLogId = getLogId();
+
+  if (!activeLogId) {
+    content.textContent = "Invalid request: missing repair record ID.";
+    return;
+  }
+
+  // The role must be read from the user's Firestore profile.
+  const profileSnap = await getDoc(doc(db, "users", user.uid));
+
+  if (!profileSnap.exists() ||
+      String(profileSnap.data().role || "").toLowerCase() !== "admin" ||
+      profileSnap.data().account_status === "blocked") {
+    content.textContent = "Administrator access is required.";
+    showMessage("You are not authorized to access the repair center.");
+    setTimeout(() => location.replace("../login.html"), 1500);
+    return;
+  }
+
+  const logSnap = await getDoc(doc(db, "borrow_logs", activeLogId));
+
+  if (!logSnap.exists()) {
+    content.textContent = "Repair record not found.";
+    return;
+  }
+
+  activeLog = { id: logSnap.id, ...logSnap.data() };
+
+  const itemId = activeLog.item_id;
+  let itemName = "Unknown item";
+
+  if (itemId) {
+    const itemSnap = await getDoc(doc(db, "items", String(itemId)));
+    if (itemSnap.exists()) {
+      itemName = itemSnap.data().item_name || itemName;
+    }
+  }
+
+  const status = String(activeLog.return_status || "").toLowerCase();
+  const isMissingParts = status === "missing parts" ||
+                         status === "missing_parts";
+
+  const alertText = isMissingParts
+    ? "🧩 This item has missing parts and requires replacement."
+    : "🚨 Damaged item detected and requires repair.";
+
+  const proof = activeLog.return_proof
+    ? `<img class="proof" src="${escapeHTML(activeLog.return_proof)}"
+         alt="Return condition proof" referrerpolicy="no-referrer">`
+    : "";
+
+  content.innerHTML = `
+    <div class="damage-box">${alertText}</div>
+    <div class="info">
+      <b>Item:</b> ${escapeHTML(itemName)}<br>
+      <b>Return Status:</b> ${escapeHTML(activeLog.return_status || "—").toUpperCase()}<br>
+      <b>Damage Notes:</b><br>
+      ${escapeHTML(activeLog.return_condition || "No damage notes provided.").replace(/\n/g, "<br>")}<br>
+      <b>Borrow Log ID:</b> ${escapeHTML(activeLog.id)}
+    </div>
+    ${proof}
+  `;
+
+  // Only show the repair form after the admin and record checks pass.
+  if (activeLog.maintenance_status === "fixed") {
+    showMessage("This repair record is already marked as fixed.", "success");
+    return;
+  }
+
+  form.hidden = false;
+}
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    location.replace("../login.html");
+    return;
+  }
+
+  try {
+    await loadRepairRecord(user);
+  } catch (error) {
+    content.textContent = "Unable to load the repair record.";
+    showMessage(readableError(error));
+  }
+});
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (saving || !activeUser || !activeLog || !activeLogId) return;
+
+  const notes = notesInput.value.trim();
+
+  if (!notes) {
+    showMessage("Please enter the repair notes.");
+    return;
+  }
+
+  const confirmed = confirm(
+    "Confirm that this item has been repaired and its return status should be marked good?"
+  );
+
+  if (!confirmed) return;
+
+  saving = true;
+  repairButton.disabled = true;
+  repairButton.textContent = "Saving repair...";
+
+  try {
+    // Recheck the current profile before performing the update.
+    const profileSnap = await getDoc(doc(db, "users", activeUser.uid));
+
+    if (!profileSnap.exists() ||
+        String(profileSnap.data().role || "").toLowerCase() !== "admin" ||
+        profileSnap.data().account_status === "blocked") {
+      throw new Error("Administrator authorization could not be verified.");
+    }
+
+    // Do not trust the page's earlier record state alone.
+    const logRef = doc(db, "borrow_logs", activeLogId);
+    const latestLog = await getDoc(logRef);
+
+    if (!latestLog.exists()) {
+      throw new Error("Repair record no longer exists.");
+    }
+
+    if (latestLog.data().maintenance_status === "fixed") {
+      throw new Error("This record has already been marked as fixed.");
+    }
+
+    await updateDoc(logRef, {
+      maintenance_status: "fixed",
+      return_status: "good",
+      repair_notes: notes,
+      repaired_by: activeUser.email || activeUser.uid,
+      repaired_by_uid: activeUser.uid,
+      repair_date: serverTimestamp()
+    });
+
+    showMessage("Item repaired successfully!", "success");
+    form.hidden = true;
+    content.insertAdjacentHTML(
+      "beforeend",
+      '<p style="margin-top:18px">Repair status updated. Returning to borrow logs...</p>'
+    );
+
+    setTimeout(() => {
+      location.href = "borrow_logs.html";
+    }, 1200);
+
+  } catch (error) {
+    showMessage(readableError(error));
+    repairButton.disabled = false;
+    repairButton.textContent = "🔧 Confirm Repair";
+  } finally {
+    saving = false;
+  }
+});
+</script>
+</body>
+</html>

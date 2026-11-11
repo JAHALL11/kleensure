@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#38bdf8">
+  <link rel="icon" href="data:,">
+  <title>Kleensure | Inventory Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --sky: #38bdf8;
+      --sky-dark: #0284c7;
+      --sky-deep: #075985;
+      --sky-pale: #e0f2fe;
+      --ink: #153047;
+      --bg: #f0f9ff;
+      --card: #ffffff;
+      --muted: #64748b;
+      --line: #dceaf4;
+      --green: #0d9488;
+      --red: #dc2626;
+      --orange: #ea580c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: Inter, Arial, sans-serif;
+      color: var(--ink);
+      transition: background .2s, color .2s;
+    }
+
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 250px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, #082f49, #0c4a6e);
+      color: #fff;
+      padding: 22px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .brand {
+      text-align: center;
+      font-weight: 800;
+      line-height: 1.5;
+      margin: 4px 0 18px;
+      font-size: 21px;
+      letter-spacing: 1px;
+    }
+
+    .brand small {
+      display: block;
+      font-size: 11px;
+      letter-spacing: .3px;
+      color: #bae6fd;
+      font-weight: 500;
+    }
+
+    .clock {
+      text-align: center;
+      color: #bae6fd;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .sidebar a, .sidebar button {
+      display: block;
+      color: #f0f9ff;
+      text-decoration: none;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      padding: 13px 15px;
+      border-radius: 11px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+
+    .sidebar a:hover, .sidebar button:hover, .sidebar a.active {
+      background: var(--sky);
+      color: #082f49;
+    }
+
+    .sidebar .spacer { flex: 1; }
+
+    .main {
+      min-width: 0;
+      flex: 1;
+      padding: 28px;
+      max-width: calc(100% - 250px);
+    }
+
+    .welcome {
+      background: linear-gradient(120deg, #0284c7, #38bdf8);
+      border-radius: 22px;
+      padding: 26px 30px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 12px 30px #0284c725;
+      margin-bottom: 22px;
+    }
+
+    .welcome h1 {
+      font-size: clamp(23px, 3vw, 34px);
+      margin: 0 0 9px;
+    }
+
+    .welcome p { margin: 0; opacity: .95; line-height: 1.6; }
+    .welcome .big { font-size: 60px; opacity: .4; }
+
+    .role-label {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #ffffff25;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+
+    .toprow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .toprow small { color: var(--muted); }
+
+    .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 14px;
+      background: var(--sky-dark);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .btn:hover { filter: brightness(.94); }
+    .btn.green { background: var(--green); }
+    .btn.purple { background: #6366f1; }
+    .btn.red { background: var(--red); }
+    .btn.dark { background: #334155; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .stat {
+      padding: 22px;
+      border-radius: 18px;
+      color: white;
+      box-shadow: 0 8px 20px #0000000c;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat h3 { font-size: 13px; margin: 0 0 14px; }
+    .stat p { font-size: 34px; font-weight: 800; margin: 0 0 8px; }
+    .stat small { opacity: .9; font-size: 11px; }
+
+    .stat:after {
+      content: "";
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      right: -35px;
+      top: -35px;
+      background: #ffffff20;
+      border-radius: 50%;
+    }
+
+    .bluebg { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+    .greenbg { background: linear-gradient(135deg, #0f766e, #2dd4bf); }
+    .orangebg { background: linear-gradient(135deg, #c2410c, #fb923c); }
+    .redbg { background: linear-gradient(135deg, #b91c1c, #fb7185); }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .panel {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 7px 24px #172b4d09;
+      border: 1px solid var(--line);
+      margin-bottom: 20px;
+      min-width: 0;
+    }
+
+    .panel h2 { font-size: 17px; margin: 0 0 18px; }
+
+    .statusgrid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .statusitem {
+      border-radius: 13px;
+      padding: 16px;
+      background: #f0f9ff;
+      border: 1px solid #dbeafe;
+    }
+
+    .statusitem strong { display: block; margin-bottom: 7px; font-size: 12px; }
+    .statusitem span { font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
+
+    .bar {
+      height: 12px;
+      border-radius: 99px;
+      background: #e2e8f0;
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .bar div {
+      height: 100%;
+      background: linear-gradient(90deg, #0284c7, #7dd3fc);
+      transition: width .5s;
+    }
+
+    .ai-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .ai-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 21px;
+      box-shadow: 0 7px 24px #172b4d09;
+      min-width: 0;
+    }
+
+    .ai-card h2 { font-size: 16px; margin: 0 0 16px; }
+    .insight { line-height: 1.7; margin: 10px 0; color: var(--muted); font-size: 13px; }
+
+    .recommend {
+      padding: 14px;
+      border-radius: 12px;
+      background: #e0f2fe;
+      line-height: 1.7;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .table-wrap { overflow: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 7px;
+      min-width: 760px;
+    }
+
+    th {
+      background: #0284c7;
+      color: white;
+      padding: 12px;
+      text-align: center;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    th:first-child { border-radius: 9px 0 0 9px; }
+    th:last-child { border-radius: 0 9px 9px 0; }
+
+    td {
+      padding: 12px 10px;
+      text-align: center;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    tr:hover td { background: #f0f9ff; }
+
+    .item-img {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .low { color: #dc2626; font-weight: 800; }
+    .ok { color: #047857; font-weight: 800; }
+
+    .search {
+      padding: 11px 13px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      width: min(100%, 330px);
+      background: var(--card);
+      color: inherit;
+    }
+
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 10px;
+      font-weight: 800;
+      background: #e0f2fe;
+      color: #075985;
+    }
+
+    .alert {
+      padding: 13px 16px;
+      border-radius: 11px;
+      color: white;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: none;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+    }
+
+    .alert.show { display: block; }
+    .error { background: #b91c1c; }
+    .success { background: #0284c7; }
+    .muted { color: var(--muted); }
+    .empty { text-align: center; padding: 25px; color: var(--muted); }
+    .hidden { display: none !important; }
+    .activity { max-height: 310px; overflow: auto; }
+
+    .activity-row {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+    }
+
+    .activity-row:last-child { border-bottom: 0; }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 10px;
+      line-height: 1.8;
+    }
+
+    body.dark {
+      --bg: #071827;
+      --card: #102a3d;
+      --ink: #e0f2fe;
+      --muted: #a7c6d9;
+      --line: #25455a;
+      color: #e0f2fe;
+    }
+
+    body.dark .statusitem,
+    body.dark .recommend { background: #15384e; border-color: #25455a; }
+
+    body.dark tr:hover td { background: #17374b; }
+    body.dark .search { border-color: #426176; }
+    body.dark .bar { background: #29475b; }
+
+    @media(max-width:1100px) {
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ai-grid { grid-template-columns: 1fr 1fr; }
+      .ai-card:first-child { grid-column: span 2; }
+      .statusgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media(max-width:760px) {
+      .layout { display: block; }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 5px;
+        padding: 13px;
+      }
+
+      .brand, .clock, .sidebar .spacer { grid-column: 1 / -1; }
+      .sidebar .brand { margin: 4px; }
+      .sidebar a, .sidebar button { padding: 11px 10px; font-size: 12px; }
+      .main { max-width: none; padding: 15px; }
+      .welcome { padding: 20px; }
+      .welcome .big { display: none; }
+      .cards { gap: 10px; }
+      .stat { padding: 16px; }
+      .stat p { font-size: 27px; }
+      .grid2, .ai-grid { grid-template-columns: 1fr; }
+      .ai-card:first-child { grid-column: auto; }
+      .statusgrid { grid-template-columns: 1fr 1fr; }
+      .panel { padding: 15px; }
+      .toprow { align-items: stretch; }
+      .search { width: 100%; }
+    }
+
+    @media(max-width:380px) {
+      .cards, .statusgrid { grid-template-columns: 1fr; }
+      .welcome h1 { font-size: 23px; }
+    }
+
+    @media print {
+      .sidebar, .no-print { display: none !important; }
+      .main { max-width: none; margin: 0; padding: 0; }
+      .panel, .stat, .ai-card { box-shadow: none; break-inside: avoid; }
+      body { background: #fff !important; color: #111 !important; }
+      .layout { display: block; }
+      .cards { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      🧹 KLEENSURE
+      <small>Cleaning Inventory System</small>
+    </div>
+
+    <div id="clock" class="clock">Loading clock…</div>
+
+    <a class="active" href="dashboard.html">🏠 Dashboard</a>
+    <a href="menu.html">☰ Main Menu</a>
+    <a href="add_item.html" id="addItemLink">➕ Add Inventory Item</a>
+    <a href="borrow_logs.html">📋 Borrowing Records</a>
+    <a href="reports.html">📄 Reports</a>
+    <a href="profile.html">👤 My Profile</a>
+    <button id="darkBtn" type="button">🌙 Toggle Dark Mode</button>
+
+    <div class="spacer"></div>
+    <button id="logoutBtn" type="button">🚪 Sign Out</button>
+  </aside>
+
+  <main class="main">
+    <div id="notice" class="alert" role="status" aria-live="polite"></div>
+
+    <div class="welcome">
+      <div>
+        <h1>Welcome, <span id="welcomeName">there</span> 👋</h1>
+        <p>Track cleaning equipment, chemicals, supplies, and borrowing activity.</p>
+        <span id="roleBadge" class="role-label">Loading role…</span>
+      </div>
+      <div class="big" aria-hidden="true">🧹</div>
+    </div>
+
+    <div class="toprow">
+      <div>
+        <strong>Inventory overview</strong><br>
+        <small id="lastUpdated">Connecting to Firebase…</small>
+      </div>
+      <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="refreshBtn" type="button">↻ Refresh</button>
+        <button class="btn dark" id="printBtn" type="button">🖨 Print Dashboard</button>
+      </div>
+    </div>
+
+    <section class="cards">
+      <div class="stat bluebg">
+        <h3>Inventory Item Types</h3>
+        <p id="totalItems">—</p>
+        <small>Registered inventory items</small>
+      </div>
+      <div class="stat greenbg">
+        <h3>Stock Units</h3>
+        <p id="totalStocks">—</p>
+        <small>Recorded total quantity</small>
+      </div>
+      <div class="stat orangebg">
+        <h3>Active Borrow Batches</h3>
+        <p id="borrowedCount">—</p>
+        <small>Currently borrowed batches</small>
+      </div>
+      <div class="stat redbg">
+        <h3>Low Stock Items</h3>
+        <p id="lowStock">—</p>
+        <small>At or below 10 units</small>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>🖥️ System Status</h2>
+      <div class="statusgrid">
+        <div class="statusitem">
+          <strong>🗄️ Database</strong>
+          <span id="dbStatus">Connecting…</span>
+        </div>
+        <div class="statusitem">
+          <strong>⚠️ Low Stock</strong>
+          <span id="statusLow">—</span>
+        </div>
+        <div class="statusitem">
+          <strong>📦 Borrowed Batches</strong>
+          <span id="statusBorrowed">—</span>
+        </div>
+        <div class="statusitem">
+          <strong>🔔 Pending Returns</strong>
+          <span id="pendingCount">—</span>
+        </div>
+      </div>
+      <div style="margin-top:18px;font-weight:700">
+        Stock health <span id="healthLabel">—</span>
+      </div>
+      <div class="bar"><div id="healthBar" style="width:0%"></div></div>
+      <small class="muted">
+        Indicative score based on the number of low-stock item types. This is not a full audit score.
+      </small>
+    </section>
+
+    <section class="grid2">
+      <div class="panel">
+        <h2>📊 Inventory Analytics</h2>
+        <canvas id="inventoryChart" height="220"></canvas>
+      </div>
+      <div class="panel">
+        <h2>🥧 Stock Status Overview</h2>
+        <canvas id="pieChart" height="220"></canvas>
+      </div>
+    </section>
+
+    <section class="ai-grid">
+      <div class="ai-card">
+        <h2>📈 Inventory Insights</h2>
+        <p class="insight">📦 Most frequently borrowed: <strong id="mostBorrowed">Loading…</strong> <span id="mostBorrowedTotal"></span></p>
+        <p class="insight">⚠️ Lowest stock: <strong id="lowestItem">Loading…</strong> (<span id="lowestQty">—</span> remaining)</p>
+        <p class="insight">📅 Borrow batches today: <strong id="todayBorrows">—</strong></p>
+        <p class="insight">👷 Most active team leader: <strong id="activeBorrower">Loading…</strong></p>
+        <p class="muted" style="font-size:11px">
+          These are rule-based insights calculated from your saved Firestore data, not a generative AI service.
+        </p>
+      </div>
+
+      <div class="ai-card">
+        <h2>💧 Stock Health</h2>
+        <div class="bar" style="height:22px">
+          <div id="aiHealthBar" style="width:0%"></div>
+        </div>
+        <h1 id="aiHealth" style="font-size:34px">—</h1>
+        <p class="muted" style="font-size:12px">Based on low-stock count.</p>
+      </div>
+
+      <div class="ai-card">
+        <h2>⚠️ Recommendation</h2>
+        <div id="recommendation" class="recommend">Checking inventory…</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>📋 Recent Borrowing Activity</h2>
+      <div id="activityList" class="activity">
+        <div class="empty">Loading activity…</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="toprow">
+        <div>
+          <h2 style="margin:0">📦 Inventory Items</h2>
+          <small class="muted">Search the inventory records available to your account.</small>
+        </div>
+        <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="searchInput" class="search" placeholder="🔍 Search item, category, condition…" aria-label="Search inventory">
+          <a href="add_item.html" class="btn" id="addItemButton">➕ Add Item</a>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="inventoryTable">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Item Name</th>
+              <th>Quantity</th>
+              <th>Date Added</th>
+              <th>Actions</th>
+              <th>Status</th>
+              <th>Condition</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryBody">
+            <tr><td colspan="7" class="empty">Loading inventory…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      Kleensure Inventory System © 2026<br>
+      Cleaning smarter. Managing better.
+    </footer>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp, getApp, getApps } from
+  "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  deleteDoc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyCik-MVlxK6cshGy87dXOi10a0_c52cO1w",
+  authDomain: "inventory-4f2b5.firebaseapp.com",
+  projectId: "inventory-4f2b5",
+  storageBucket: "inventory-4f2b5.firebasestorage.app",
+  messagingSenderId: "185805306294",
+  appId: "1:185805306294:web:d674bd3c32b9994fa46917",
+  measurementId: "G-5KCN8KL8ET"
+};
+
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let profile = null;
+let items = [];
+let batches = [];
+let logs = [];
+let inventoryChart = null;
+let pieChart = null;
+let loading = false;
+let authResolved = false;
+
+const $ = id => document.getElementById(id);
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
+}
+
+function notify(message, type = "success") {
+  const notice = $("notice");
+  notice.textContent = message;
+  notice.className = "alert show " + (type === "error" ? "error" : "success");
+}
+
+function num(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function dateVal(value) {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+  if (typeof value.seconds === "number") return new Date(value.seconds * 1000);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function dateText(value) {
+  const date = dateVal(value);
+  return date ? date.toLocaleDateString() : "—";
+}
+
+function roleName(role) {
+  const names = {
+    admin: "Administrator",
+    administrator: "Administrator",
+    manager: "Officer / Manager",
+    teacher: "Officer / Manager",
+    faculty: "Officer / Manager",
+    team_leader: "Team Leader",
+    student: "Team Leader",
+    "lead man": "Team Leader",
+    worker: "Team Leader",
+    employee: "Team Leader"
+  };
+  return names[role] || role;
+}
+
+function isManager() {
+  return ["manager", "teacher", "faculty"].includes(
+    String(profile?.role || "").toLowerCase()
+  );
+}
+
+function isAdmin() {
+  return ["admin", "administrator"].includes(
+    String(profile?.role || "").toLowerCase()
+  );
+}
+
+function isManagement() {
+  return isAdmin() || isManager();
+}
+
+function itemName(id) {
+  const item = items.find(x => String(x.id) === String(id));
+  return item?.item_name || item?.name || "Unknown item";
+}
+
+function recordUserName(record) {
+  return record.team_leader_name ||
+    record.borrower_name ||
+    record.username ||
+    record.user_name ||
+    record.email ||
+    "Unknown team leader";
+}
+
+function batchIsActive(batch) {
+  const status = String(batch.status || "").toLowerCase();
+  return ["borrowed", "active", "in_progress", "in progress"].includes(status);
+}
+
+function timeNow() {
+  $("clock").textContent = new Date().toLocaleString();
+}
+
+timeNow();
+setInterval(timeNow, 1000);
+
+$("darkBtn").addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+});
+
+$("printBtn").addEventListener("click", () => window.print());
+
+$("refreshBtn").addEventListener("click", () => loadDashboard());
+
+$("logoutBtn").addEventListener("click", async () => {
+  try {
+    await signOut(auth);
+    sessionStorage.removeItem("inventoryUser");
+    location.replace("../login.html");
+  } catch (error) {
+    console.error(error);
+    notify("Sign out failed. Please try again.", "error");
+  }
+});
+
+$("searchInput").addEventListener("input", renderItems);
+
+onAuthStateChanged(auth, async user => {
+  authResolved = true;
+
+  if (!user) {
+    currentUser = null;
+    profile = null;
+    sessionStorage.removeItem("inventoryUser");
+    location.replace("../login.html");
+    return;
+  }
+
+  currentUser = user;
+
+  try {
+    const snapshot = await getDoc(doc(db, "users", user.uid));
+
+    if (!snapshot.exists()) {
+      $("dbStatus").textContent = "Profile missing";
+      notify(
+        "Walang users profile para sa account na ito. " +
+        "I-check ang users/" + user.uid + " sa Firestore.",
+        "error"
+      );
+      return;
+    }
+
+    profile = snapshot.data();
+
+    if (String(profile.account_status || "active").toLowerCase() === "blocked") {
+      await signOut(auth);
+      location.replace("../login.html");
+      return;
+    }
+
+    const role = String(profile.role || "").trim().toLowerCase();
+    const supportedRoles = [
+      "admin", "administrator", "manager", "teacher", "faculty",
+      "team_leader", "student", "lead man", "worker", "employee"
+    ];
+
+    if (!supportedRoles.includes(role)) {
+      notify("Hindi naka-configure ang role na ito para sa Kleensure.", "error");
+      return;
+    }
+
+    $("welcomeName").textContent =
+      profile.username || user.displayName || user.email || "there";
+
+    $("roleBadge").textContent = roleName(role);
+
+    // Inventory maintenance controls are management-only in the UI.
+    // Firestore Rules must enforce this restriction too.
+    if (!isManagement()) {
+      $("addItemLink").classList.add("hidden");
+      $("addItemButton").classList.add("hidden");
+    }
+
+    if (!isAdmin()) {
+      $("inventoryTable").querySelector("thead").rows[0].cells[4].textContent = "Details";
+    }
+
+    await loadDashboard();
+
+  } catch (error) {
+    console.error("Profile check failed:", error);
+    $("dbStatus").textContent = "Connection error";
+    notify(
+      "Hindi mabasa ang profile. Suriin ang Firestore Rules: " +
+      (error.code || error.message),
+      "error"
+    );
+  }
+});
+
+async function readCollection(name) {
+  let snapshot;
+
+  const currentRole = String(profile?.role || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  const managementRoles = [
+    "admin",
+    "administrator",
+    "super_admin",
+    "superadmin",
+    "manager",
+    "officer",
+    "inventory_manager",
+    "inventory_officer"
+  ];
+
+  const canReadAll = managementRoles.includes(currentRole);
+
+  if (name === "inventory_logs") {
+    // Only administrators and managers may read all audit logs.
+    if (!canReadAll) {
+      console.info(
+        "[Kleensure] inventory_logs skipped for role:",
+        currentRole
+      );
+      return [];
+    }
+
+    snapshot = await getDocs(collection(db, name));
+
+  } else if (name === "borrow_batches") {
+    if (canReadAll) {
+      snapshot = await getDocs(collection(db, name));
+    } else {
+      // Other active users may only read their own borrowing batches.
+      snapshot = await getDocs(
+        query(
+          collection(db, name),
+          where("user_id", "==", currentUser.uid)
+        )
+      );
+    }
+
+  } else {
+    // Active inventory users can read items.
+    snapshot = await getDocs(collection(db, name));
+  }
+
+  console.info(
+    `[Kleensure] ${name}: ${snapshot.size} records`
+  );
+
+  return snapshot.docs.map(d => ({
+    id: d.id,
+    ...d.data()
+  }));
+}
+
+
+async function loadDashboard() {
+  if (!authResolved || !currentUser || !profile || loading) {
+    return;
+  }
+
+  loading = true;
+
+  $("dbStatus").textContent = "Loading...";
+  $("refreshBtn").disabled = true;
+
+  try {
+    const currentRole = String(profile.role || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+
+    const accountStatus = String(
+      profile.account_status || "pending"
+    ).toLowerCase();
+
+    const approvalStatus = String(
+      profile.approval_status || "approved"
+    ).toLowerCase();
+
+    if (
+      accountStatus !== "active" ||
+      approvalStatus !== "approved"
+    ) {
+      $("dbStatus").textContent = "Pending approval";
+
+      notify(
+        "Hindi pa active o approved ang account mo. " +
+        "Makipag-ugnayan sa administrator.",
+        "error"
+      );
+
+      return;
+    }
+
+    const allowedRoles = [
+      "admin",
+      "administrator",
+      "super_admin",
+      "superadmin",
+      "manager",
+      "officer",
+      "inventory_manager",
+      "inventory_officer",
+      "faculty",
+      "teacher",
+      "team_leader",
+      "teamleader",
+      "lead_man",
+      "leadman",
+      "worker",
+      "employee",
+      "staff"
+    ];
+
+    if (!allowedRoles.includes(currentRole)) {
+      $("dbStatus").textContent = "Unauthorized";
+
+      notify(
+        "Walang inventory dashboard permission ang role na ito.",
+        "error"
+      );
+
+      return;
+    }
+
+    // Load separately so the console identifies the exact
+    // collection that Firestore rejects.
+    let loadedItems = [];
+    let loadedBatches = [];
+    let loadedLogs = [];
+
+    try {
+      loadedItems = await readCollection("items");
+    } catch (error) {
+      console.error("[Kleensure] ITEMS READ FAILED:", error);
+      throw new Error(
+        "Cannot read items collection: " +
+        (error.code || error.message)
+      );
+    }
+
+    try {
+      loadedBatches = await readCollection("borrow_batches");
+    } catch (error) {
+      console.error(
+        "[Kleensure] BORROW_BATCHES READ FAILED:",
+        error
+      );
+
+      throw new Error(
+        "Cannot read borrow_batches collection: " +
+        (error.code || error.message)
+      );
+    }
+
+    try {
+      loadedLogs = await readCollection("inventory_logs");
+    } catch (error) {
+      console.error(
+        "[Kleensure] INVENTORY_LOGS READ FAILED:",
+        error
+      );
+
+      throw new Error(
+        "Cannot read inventory_logs collection: " +
+        (error.code || error.message)
+      );
+    }
+
+    items = loadedItems;
+    batches = loadedBatches;
+    logs = loadedLogs;
+
+    $("dbStatus").textContent = "Connected";
+
+    $("lastUpdated").textContent =
+      "Last synced " + new Date().toLocaleTimeString();
+
+    renderDashboard();
+
+    console.info("[Kleensure] Dashboard successfully loaded.");
+
+  } catch (error) {
+    console.error("Dashboard load failed:", error);
+
+    $("dbStatus").textContent = "Read failed";
+
+    notify(
+      "Dashboard error: " +
+      (error.message || error.code),
+      "error"
+    );
+
+  } finally {
+    loading = false;
+    $("refreshBtn").disabled = false;
+  }
+}
+
+function renderDashboard() {
+  const totalItems = items.length;
+  const totalStocks = items.reduce((sum, item) => sum + num(item.quantity), 0);
+  const lowItems = items.filter(item => num(item.quantity) <= 10);
+  const activeBatches = batches.filter(batchIsActive).length;
+
+  const pendingReturns = batches.filter(batch => {
+    const status = String(batch.status || "").toLowerCase();
+    return ["borrowed", "active", "in_progress", "in progress", "return_pending"].includes(status);
+  }).length;
+
+  const health = totalItems
+    ? Math.max(0, Math.round(100 * (totalItems - lowItems.length) / totalItems))
+    : 100;
+
+  $("totalItems").textContent = totalItems;
+  $("totalStocks").textContent = totalStocks;
+  $("borrowedCount").textContent = activeBatches;
+  $("lowStock").textContent = lowItems.length;
+
+  $("statusLow").textContent = lowItems.length + " item(s)";
+  $("statusBorrowed").textContent = activeBatches + " active";
+  $("pendingCount").textContent = pendingReturns;
+
+  $("healthLabel").textContent = health + "%";
+  $("healthBar").style.width = health + "%";
+  $("aiHealth").textContent = health + "%";
+  $("aiHealthBar").style.width = health + "%";
+
+  // Summarize item activity from available inventory logs.
+  const borrowCounts = new Map();
+
+  logs.forEach(log => {
+    const id = String(log.item_id ?? "");
+    if (id) borrowCounts.set(id, (borrowCounts.get(id) || 0) + 1);
+  });
+
+  const mostBorrowed = [...borrowCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+
+  $("mostBorrowed").textContent = mostBorrowed ? itemName(mostBorrowed[0]) : "No data";
+  $("mostBorrowedTotal").textContent = mostBorrowed ? `(${mostBorrowed[1]} log entries)` : "";
+
+  const lowest = [...items].sort((a, b) => num(a.quantity) - num(b.quantity))[0];
+
+  $("lowestItem").textContent = lowest
+    ? lowest.item_name || lowest.name || "Unnamed item"
+    : "No item";
+
+  $("lowestQty").textContent = lowest ? num(lowest.quantity) : 0;
+
+  const today = new Date();
+  const todayCount = batches.filter(batch => {
+    const date = dateVal(batch.created_at || batch.createdAt || batch.borrow_date);
+    return date &&
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate();
+  }).length;
+
+  $("todayBorrows").textContent = todayCount;
+
+  const leaderCounts = new Map();
+
+  batches.forEach(batch => {
+    const name = recordUserName(batch);
+    leaderCounts.set(name, (leaderCounts.get(name) || 0) + 1);
+  });
+
+  const activeLeader = [...leaderCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+
+  $("activeBorrower").textContent = activeLeader
+    ? `${activeLeader[0]} (${activeLeader[1]} batches)`
+    : "No data";
+
+  const urgentItems = lowItems.filter(item => num(item.quantity) <= 5);
+
+  if (!items.length) {
+    $("recommendation").textContent = "Add inventory items to begin tracking stock.";
+  } else if (urgentItems.length) {
+    $("recommendation").textContent =
+      "Restock urgently: " +
+      urgentItems.slice(0, 4)
+        .map(item => item.item_name || item.name || "Unnamed item")
+        .join(", ") +
+      (urgentItems.length > 4 ? " and others" : "") + ".";
+  } else if (lowItems.length) {
+    $("recommendation").textContent =
+      `${lowItems.length} item(s) are at or below 10 units. Plan a restock soon.`;
+  } else {
+    $("recommendation").textContent =
+      "Stock levels look stable. Continue monitoring usage and returned quantities.";
+  }
+
+  if (typeof Chart !== "undefined") {
+    if (inventoryChart) inventoryChart.destroy();
+    if (pieChart) pieChart.destroy();
+
+    inventoryChart = new Chart($("inventoryChart"), {
+      type: "bar",
+      data: {
+        labels: ["Item Types", "Stock Units", "Active Batches", "Low Stock"],
+        datasets: [{
+          label: "Inventory overview",
+          data: [totalItems, totalStocks, activeBatches, lowItems.length],
+          backgroundColor: ["#0284c7", "#38bdf8", "#0d9488", "#f97316"],
+          borderRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    const healthyItems = Math.max(0, totalItems - lowItems.length);
+
+    pieChart = new Chart($("pieChart"), {
+      type: "doughnut",
+      data: {
+        labels: ["Normal Stock", "Low Stock"],
+        datasets: [{
+          data: [healthyItems, lowItems.length],
+          backgroundColor: ["#38bdf8", "#f97316"],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: "63%",
+        plugins: { legend: { position: "bottom" } }
+      }
+    });
+  }
+
+  renderActivity();
+  renderItems();
+}
+
+function renderActivity() {
+  const recent = [...batches]
+    .sort((a, b) => {
+      const dateA = dateVal(a.created_at || a.createdAt || a.borrow_date)?.getTime() || 0;
+      const dateB = dateVal(b.created_at || b.createdAt || b.borrow_date)?.getTime() || 0;
+      return dateB - dateA;
+    })
+    .slice(0, 8);
+
+  $("activityList").innerHTML = recent.length
+    ? recent.map(batch => {
+        const status = String(batch.status || "unknown").replace(/_/g, " ");
+        const batchLabel = batch.batch_name || batch.job_name || batch.site_name || batch.id;
+        const date = batch.created_at || batch.createdAt || batch.borrow_date;
+
+        return `
+          <div class="activity-row">
+            📋 <b>${esc(batchLabel)}</b><br>
+            👷 ${esc(recordUserName(batch))}<br>
+            <span class="pill">${esc(status)}</span>
+            <small class="muted"> · ${esc(dateText(date))}</small>
+          </div>
+        `;
+      }).join("")
+    : '<div class="empty">No borrowing batches recorded yet.</div>';
+}
+
+function renderItems() {
+  const filter = ($("searchInput").value || "").trim().toLowerCase();
+
+  const filtered = [...items]
+    .sort((a, b) => {
+      const dateA = dateVal(a.created_at || a.createdAt)?.getTime() || 0;
+      const dateB = dateVal(b.created_at || b.createdAt)?.getTime() || 0;
+      return dateB - dateA;
+    })
+    .filter(item => [
+      item.item_name, item.name, item.category,
+      item.condition_status, item.condition, item.description
+    ].some(value => String(value || "").toLowerCase().includes(filter)));
+
+  $("inventoryBody").innerHTML = filtered.length
+    ? filtered.map(item => {
+        const quantity = num(item.quantity);
+        const low = quantity <= 10;
+        const condition = item.condition_status || item.condition || "Good";
+        const image = item.image || item.imageUrl || "";
+        const editUrl = `edit_item.html?id=${encodeURIComponent(item.id)}`;
+
+        const action = isAdmin()
+          ? `<a class="btn purple" href="${editUrl}">Edit</a>
+             <button class="btn red delete-item" data-id="${esc(item.id)}" type="button">Delete</button>`
+          : `<span class="muted">View only</span>`;
+
+        return `
+          <tr>
+            <td>
+              ${image
+                ? `<img class="item-img" src="${esc(image)}" alt="Inventory item"
+                     loading="lazy" onerror="this.style.display='none'">`
+                : "—"}
+            </td>
+            <td>
+              <b>${esc(item.item_name || item.name || "Unnamed item")}</b>
+              <br><small class="muted">${esc(item.category || "Uncategorized")}</small>
+            </td>
+            <td><b>${quantity}</b></td>
+            <td>${esc(dateText(item.created_at || item.createdAt || item.purchase_date))}</td>
+            <td><div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap">${action}</div></td>
+            <td><span class="${low ? "low" : "ok"}">${low ? "Low Stock" : "In Stock"}</span></td>
+            <td><span class="pill">${esc(condition)}</span></td>
+          </tr>
+        `;
+      }).join("")
+    : '<tr><td colspan="7" class="empty">No matching inventory items.</td></tr>';
+
+  document.querySelectorAll(".delete-item").forEach(button => {
+    button.addEventListener("click", () => deleteItem(button.dataset.id));
+  });
+}
+
+async function deleteItem(id) {
+  // UI restriction only. Firestore Rules must also restrict item deletion to Admin.
+  if (!isAdmin()) {
+    notify("Admin lang ang maaaring mag-delete ng inventory item.", "error");
+    return;
+  }
+
+  const hasActiveBatch = batches.some(batch => {
+    if (!batchIsActive(batch)) return false;
+
+    return Array.isArray(batch.items) && batch.items.some(entry =>
+      String(entry.item_id || entry.itemId || entry.id || "") === String(id)
+    );
+  });
+
+  if (hasActiveBatch) {
+    notify("May active borrowing batch na gumagamit sa item na ito. Ibalik muna bago mag-delete.", "error");
+    return;
+  }
+
+  if (!confirm("Delete this inventory item? This cannot be undone.")) return;
+
+  try {
+    await deleteDoc(doc(db, "items", id));
+    notify("Inventory item deleted.");
+    await loadDashboard();
+  } catch (error) {
+    console.error("Delete failed:", error);
+    notify("Hindi na-delete ang item. I-check ang Firestore Rules.", "error");
+  }
+}
+</script>
+</body>
+</html>

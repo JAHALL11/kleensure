@@ -1,0 +1,320 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Borrow Requests | PTC Inventory</title>
+
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#0f172a;padding:30px;color:white;margin:0;overflow-x:hidden}
+.container{max-width:1400px;margin:auto}
+h1{margin-bottom:25px;font-size:clamp(28px,4vw,40px)}
+.top{margin-bottom:20px}
+.top a{display:inline-block;padding:14px 20px;background:#6c5ce7;color:white;text-decoration:none;border-radius:15px;font-weight:bold}
+.top a:hover{background:#8174f1}
+.message{padding:14px;border-radius:12px;margin-bottom:18px;background:#164e63;line-height:1.5;overflow-wrap:anywhere}
+.table-wrap{width:100%;overflow-x:auto;border-radius:18px;background:#ffffff0d;border:1px solid #ffffff14}
+table{width:100%;min-width:950px;border-collapse:collapse;background:#ffffff0d}
+th{background:#6c5ce7;padding:16px;text-align:left;white-space:nowrap}
+td{padding:16px;border-bottom:1px solid #ffffff14;vertical-align:middle}
+tbody tr:hover{background:#ffffff09}
+img.proof{width:70px;height:70px;object-fit:cover;border-radius:12px;display:block}
+.no-proof{color:#94a3b8;font-size:13px}
+.btn{padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:bold;display:inline-block;margin:3px 4px 3px 0;border:0;cursor:pointer;white-space:nowrap}
+.approve{background:#00b894;color:#062b22}
+.reject{background:#d63031;color:white}
+.btn:hover{filter:brightness(1.1)}
+.pending{color:#fdcb6e;font-weight:bold}
+.approved{color:#00ff88;font-weight:bold}
+.rejected{color:#ff7675;font-weight:bold}
+.other-status{color:#81ecec;font-weight:bold}
+.completed{color:#94a3b8}
+.empty{text-align:center;padding:30px;color:#cbd5e1}
+@media(max-width:600px){body{padding:14px}.top a{padding:12px 16px}}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <div class="top">
+    <a href="faculty_request.html">← Back</a>
+  </div>
+
+  <h1>📨 Faculty Manage Requests</h1>
+
+  <div id="message" class="message">Checking authorization...</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Item</th>
+          <th>Quantity</th>
+          <th>Proof</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="requestsBody">
+        <tr><td colspan="7" class="empty">Loading requests...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script type="module">
+import {auth,db} from "./firebase.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+  collection,doc,getDoc,getDocs,query,orderBy
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const message=document.getElementById("message");
+const tbody=document.getElementById("requestsBody");
+
+function showMessage(text){
+  message.textContent=text;
+  message.style.display="block";
+}
+function hideMessage(){
+  message.style.display="none";
+}
+function cell(text){
+  const td=document.createElement("td");
+  td.textContent=String(text??"—");
+  return td;
+}
+function formatStatus(status){
+  return String(status||"unknown").toLowerCase();
+}
+function formatDate(value){
+  if(!value)return "—";
+  const date=typeof value.toDate==="function"?value.toDate():new Date(value);
+  return Number.isNaN(date.getTime())?"—":date.toLocaleString();
+}
+
+async function getRelatedData(requests){
+  const userIds=[...new Set(requests.map(r=>r.user_id).filter(Boolean).map(String))];
+  const itemIds=[...new Set(requests.map(r=>r.item_id).filter(Boolean).map(String))];
+
+  const [users,items]=await Promise.all([
+    Promise.all(userIds.map(async id=>{
+      try{
+        const snap=await getDoc(doc(db,"users",id));
+        return [id,snap.exists()?snap.data():null];
+      }catch(e){
+        console.warn("User lookup failed:",id,e);
+        return [id,null];
+      }
+    })),
+    Promise.all(itemIds.map(async id=>{
+      try{
+        const snap=await getDoc(doc(db,"items",id));
+        return [id,snap.exists()?snap.data():null];
+      }catch(e){
+        console.warn("Item lookup failed:",id,e);
+        return [id,null];
+      }
+    }))
+  ]);
+
+  return {
+    users:new Map(users),
+    items:new Map(items)
+  };
+}
+
+function addProofCell(row,url){
+  const td=document.createElement("td");
+
+  if(typeof url==="string"&&/^https:\/\//i.test(url)){
+    const link=document.createElement("a");
+    link.href=url;
+    link.target="_blank";
+    link.rel="noopener noreferrer";
+    link.title="Open borrow proof";
+
+    const img=document.createElement("img");
+    img.className="proof";
+    img.src=url;
+    img.alt="Borrow proof";
+    img.loading="lazy";
+    img.onerror=()=>{
+      link.replaceChildren();
+      const text=document.createElement("span");
+      text.className="no-proof";
+      text.textContent="Image unavailable";
+      link.append(text);
+    };
+
+    link.append(img);
+    td.append(link);
+  }else{
+    const span=document.createElement("span");
+    span.className="no-proof";
+    span.textContent="No proof";
+    td.append(span);
+  }
+
+  row.append(td);
+}
+
+function addActionCell(row,request){
+  const td=document.createElement("td");
+  const status=formatStatus(request.status);
+
+  if(status==="pending"){
+    for(const action of ["approve","reject"]){
+      const link=document.createElement("a");
+      link.className="btn "+action;
+      link.textContent=action==="approve"?"Approve":"Reject";
+      link.href="faculty_action.html?id="+encodeURIComponent(request.id)+
+        "&action="+action;
+      link.addEventListener("click",event=>{
+        const confirmation=action==="approve"
+          ?"Approve this borrow request? Stock and borrow-limit checks will be performed by the action handler."
+          :"Reject this borrow request?";
+        if(!confirm(confirmation))event.preventDefault();
+      });
+      td.append(link);
+    }
+  }else{
+    const span=document.createElement("span");
+    span.className="completed";
+    span.textContent="Completed";
+    td.append(span);
+  }
+
+  row.append(td);
+}
+
+async function loadRequests(){
+  // Explicitly require a staff role for this management page.
+  const user=auth.currentUser;
+  if(!user)throw new Error("Please sign in first.");
+
+  const profileSnap=await getDoc(doc(db,"users",user.uid));
+  if(!profileSnap.exists())throw new Error("User profile not found.");
+
+  const role=String(profileSnap.data().role||"").toLowerCase();
+  const allowedRoles=["manager","officer","teacher"];
+
+  if(!allowedRoles.includes(role)){
+    showMessage("Access denied. Staff authorization is required to manage requests.");
+    setTimeout(()=>location.href="faculty_dashboard.html",1200);
+    return;
+  }
+
+  // Read all requests. Firestore rules must restrict this collection
+  // to authorized staff.
+  let snapshot;
+  try{
+    snapshot=await getDocs(
+      query(collection(db,"requests"),orderBy("request_date","desc"))
+    );
+  }catch(error){
+    // Fallback for requests without request_date or missing index.
+    console.warn("Ordered request query failed; trying basic query.",error);
+    snapshot=await getDocs(collection(db,"requests"));
+  }
+
+  const requests=snapshot.docs.map(d=>({id:d.id,...d.data()}));
+
+  requests.sort((a,b)=>{
+    const millis=value=>{
+      if(!value)return 0;
+      if(typeof value.toMillis==="function")return value.toMillis();
+      const d=new Date(value);
+      return Number.isNaN(d.getTime())?0:d.getTime();
+    };
+    return millis(b.request_date)-millis(a.request_date);
+  });
+
+  tbody.replaceChildren();
+
+  if(requests.length===0){
+    const tr=document.createElement("tr");
+    const td=document.createElement("td");
+    td.colSpan=7;
+    td.className="empty";
+    td.textContent="No borrow requests found.";
+    tr.append(td);
+    tbody.append(tr);
+    hideMessage();
+    return;
+  }
+
+  const {users,items}=await getRelatedData(requests);
+
+  for(const request of requests){
+    const row=document.createElement("tr");
+    const userData=users.get(String(request.user_id))||{};
+    const itemData=items.get(String(request.item_id))||{};
+
+    row.append(cell(
+      request.username||userData.username||userData.displayName||"Unknown User"
+    ));
+
+    row.append(cell(
+      request.institutional_email||userData.institutional_email||
+      userData.email||"—"
+    ));
+
+    row.append(cell(
+      request.item_name||itemData.item_name||itemData.name||"Deleted Item"
+    ));
+
+    row.append(cell(request.quantity??"—"));
+    addProofCell(row,request.proof_borrow);
+
+    const statusCell=document.createElement("td");
+    const statusSpan=document.createElement("span");
+    const status=formatStatus(request.status);
+
+    statusSpan.className=["pending","approved","rejected"].includes(status)
+      ?status:"other-status";
+    statusSpan.textContent=status.charAt(0).toUpperCase()+status.slice(1);
+    statusCell.append(statusSpan);
+    row.append(statusCell);
+
+    addActionCell(row,request);
+    tbody.append(row);
+  }
+
+  hideMessage();
+}
+
+onAuthStateChanged(auth,async user=>{
+  if(!user){
+    location.href="login.html";
+    return;
+  }
+
+  try{
+    await loadRequests();
+  }catch(error){
+    console.error("Manage requests error:",error);
+    showMessage(error.message||"Unable to load requests. Check your Firestore rules.");
+    tbody.replaceChildren();
+    const tr=document.createElement("tr");
+    const td=document.createElement("td");
+    td.colSpan=7;
+    td.className="empty";
+    td.textContent="Requests could not be loaded.";
+    tr.append(td);
+    tbody.append(tr);
+  }
+});
+</script>
+</body>
+</html>

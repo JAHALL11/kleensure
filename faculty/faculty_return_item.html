@@ -1,0 +1,566 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Return Item | PTC Inventory</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0b1320, #0f172a, #001f2f);
+      min-height: 100vh;
+      padding: 30px;
+      color: white;
+    }
+
+    .wrapper {
+      max-width: 850px;
+      margin: auto;
+    }
+
+    .back {
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 14px 22px;
+      border-radius: 16px;
+      text-decoration: none;
+      font-weight: bold;
+      background: rgba(255,255,255,0.08);
+      color: white;
+    }
+
+    .card, .message-card {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      padding: 40px;
+      border-radius: 35px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+
+    .title {
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: bold;
+      margin-bottom: 25px;
+    }
+
+    .info {
+      background: rgba(255,255,255,0.06);
+      padding: 22px;
+      border-radius: 20px;
+      line-height: 2;
+      margin-bottom: 25px;
+      overflow-wrap: anywhere;
+    }
+
+    .info b {
+      color: #81ecec;
+    }
+
+    .proof {
+      display: block;
+      width: 100%;
+      max-height: 350px;
+      object-fit: contain;
+      background: rgba(0,0,0,0.15);
+      border-radius: 22px;
+      margin: 18px 0 25px;
+    }
+
+    .section-label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #dfe6e9;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    select, textarea, input[type="file"] {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 18px;
+      font-size: 16px;
+      background: rgba(255,255,255,0.95);
+      color: #0f172a;
+    }
+
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hint {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+
+    button {
+      padding: 18px;
+      border: none;
+      border-radius: 18px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      background: linear-gradient(135deg, #00b894, #55efc4);
+      color: #0f172a;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 25px;
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    .status {
+      display: none;
+      margin: 0 0 20px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    .status.error {
+      display: block;
+      background: rgba(255, 107, 107, 0.14);
+      color: #ffb4b4;
+    }
+
+    .status.success {
+      display: block;
+      background: rgba(85, 239, 196, 0.14);
+      color: #9fffe0;
+    }
+
+    .status.info-status {
+      display: block;
+      background: rgba(129, 236, 236, 0.12);
+      color: #b8ffff;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 16px;
+      }
+
+      .card, .message-card {
+        padding: 24px 18px;
+        border-radius: 25px;
+      }
+
+      .info {
+        padding: 18px;
+      }
+
+      button {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrapper">
+    <a href="faculty_borrow_logs.html" class="back">← Back to Borrow Logs</a>
+
+    <div id="loadingCard" class="message-card">
+      <div class="title">↩ Faculty Return Item</div>
+      <p id="loadingText">Checking your account and loading the borrow record...</p>
+    </div>
+
+    <div id="errorCard" class="message-card hidden">
+      <div class="title">⚠ Unable to Open Return</div>
+      <p id="errorMessage">The borrow record could not be loaded.</p>
+      <br>
+      <a href="faculty_borrow_logs.html" class="back">← Back to Borrow Logs</a>
+    </div>
+
+    <div id="returnCard" class="card hidden">
+      <div class="title">↩ Faculty Return Item</div>
+
+      <div id="notice" class="status" role="status" aria-live="polite"></div>
+
+      <div class="info">
+        <b>Item:</b> <span id="itemName">Loading...</span><br>
+        <b>Borrow Code:</b> <span id="borrowCode">—</span><br>
+        <b>Quantity:</b> <span id="quantity">—</span><br>
+        <b>Status:</b> <span id="borrowStatus">—</span>
+      </div>
+
+      <div id="borrowProofSection" class="hidden">
+        <b>Borrow Proof</b>
+        <img id="borrowProof" class="proof" alt="Borrow proof image">
+      </div>
+
+      <form id="returnForm">
+        <div class="field">
+          <label class="section-label" for="returnStatus">Return Status</label>
+          <select id="returnStatus" required>
+            <option value="">Select Return Status</option>
+            <option value="good">GOOD</option>
+            <option value="damaged">DAMAGED</option>
+            <option value="missing_parts">MISSING PARTS</option>
+            <option value="broken">BROKEN</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="section-label" for="returnCondition">Return Notes / Condition</label>
+          <textarea
+            id="returnCondition"
+            maxlength="2000"
+            placeholder="Enter return notes / condition..."
+            required
+          ></textarea>
+        </div>
+
+        <div class="field">
+          <label class="section-label" for="returnProofFile">Return Proof Image</label>
+          <input
+            id="returnProofFile"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            required
+          >
+          <p class="hint">Required. Upload a clear image of the returned item. Maximum file size: 5 MB.</p>
+        </div>
+
+        <button id="submitButton" type="submit">🚀 Confirm Return</button>
+      </form>
+
+      <div class="footer">PTC Institutional Inventory System © 2026</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db, storage } from "./firebase.js";
+
+    import {
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+    import {
+      doc,
+      getDoc,
+      runTransaction,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    import {
+      ref,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+
+    const loadingCard = document.getElementById("loadingCard");
+    const loadingText = document.getElementById("loadingText");
+    const errorCard = document.getElementById("errorCard");
+    const errorMessage = document.getElementById("errorMessage");
+    const returnCard = document.getElementById("returnCard");
+    const notice = document.getElementById("notice");
+    const returnForm = document.getElementById("returnForm");
+    const submitButton = document.getElementById("submitButton");
+
+    const params = new URLSearchParams(window.location.search);
+    const logId = params.get("id");
+
+    let currentUser = null;
+    let logData = null;
+    let itemData = null;
+    let submitting = false;
+
+    function showError(message) {
+      loadingCard.classList.add("hidden");
+      returnCard.classList.add("hidden");
+      errorCard.classList.remove("hidden");
+      errorMessage.textContent = message;
+    }
+
+    function showNotice(message, type = "info-status") {
+      notice.className = "status " + type;
+      notice.textContent = message;
+    }
+
+    function cleanText(value, fallback = "—") {
+      if (value === undefined || value === null || value === "") {
+        return fallback;
+      }
+      return String(value);
+    }
+
+    function getUserRole(profile) {
+      return String(profile?.role || "").trim().toLowerCase();
+    }
+
+    async function loadReturnRecord(user) {
+      if (!logId) {
+        showError("No borrow item selected. Please open a record from Borrow Logs.");
+        return;
+      }
+
+      const profileRef = doc(db, "users", user.uid);
+      const profileSnap = await getDoc(profileRef);
+
+      if (!profileSnap.exists()) {
+        showError("Your user profile was not found. Please contact the system administrator.");
+        return;
+      }
+
+      const profile = profileSnap.data();
+
+      if (getUserRole(profile) !== "faculty") {
+        showError("Faculty account only. You are not authorized to return an item on this page.");
+        return;
+      }
+
+      const logRef = doc(db, "borrow_logs", logId);
+      const logSnap = await getDoc(logRef);
+
+      if (!logSnap.exists()) {
+        showError("Borrow record not found.");
+        return;
+      }
+
+      logData = logSnap.data();
+
+      // This page only permits the owner of the borrow record to return it.
+      const ownerId = logData.user_id || logData.userId || logData.uid;
+
+      if (ownerId !== user.uid) {
+        showError("You are not authorized to return this borrow record.");
+        return;
+      }
+
+      if (String(logData.status || "").toLowerCase() !== "borrowed") {
+        showError("This item is not currently marked as borrowed. It may already have been returned.");
+        return;
+      }
+
+      const itemId = logData.item_id || logData.itemId;
+
+      if (!itemId) {
+        showError("The borrow record has no linked item ID. Please contact the administrator.");
+        return;
+      }
+
+      const itemSnap = await getDoc(doc(db, "items", String(itemId)));
+
+      if (!itemSnap.exists()) {
+        showError("The linked inventory item was not found.");
+        return;
+      }
+
+      itemData = itemSnap.data();
+
+      document.getElementById("itemName").textContent =
+        cleanText(logData.item_name || itemData.item_name || itemData.name);
+
+      document.getElementById("borrowCode").textContent =
+        cleanText(logData.borrow_code || logData.borrowCode);
+
+      document.getElementById("quantity").textContent =
+        cleanText(logData.quantity, "0");
+
+      document.getElementById("borrowStatus").textContent =
+        cleanText(logData.status);
+
+      const borrowProofUrl = logData.proof_borrow || logData.proofBorrow;
+
+      if (borrowProofUrl) {
+        const proofImage = document.getElementById("borrowProof");
+        proofImage.src = borrowProofUrl;
+        document.getElementById("borrowProofSection").classList.remove("hidden");
+
+        proofImage.onerror = () => {
+          proofImage.classList.add("hidden");
+        };
+      }
+
+      loadingCard.classList.add("hidden");
+      returnCard.classList.remove("hidden");
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      currentUser = user;
+
+      try {
+        await loadReturnRecord(user);
+      } catch (error) {
+        console.error("Error loading return record:", error);
+        showError("Unable to load the return record. Check your Firebase configuration and Firestore permissions.");
+      }
+    });
+
+    returnForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (submitting || !currentUser || !logData) return;
+
+      const returnStatus = document.getElementById("returnStatus").value;
+      const returnCondition = document.getElementById("returnCondition").value.trim();
+      const file = document.getElementById("returnProofFile").files[0];
+
+      if (!returnStatus || !returnCondition || !file) {
+        showNotice("Please complete all fields and select a return-proof image.", "error");
+        return;
+      }
+
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+      if (!allowedTypes.includes(file.type)) {
+        showNotice("Please upload a JPG, PNG, or WEBP image.", "error");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        showNotice("The image must not exceed 5 MB.", "error");
+        return;
+      }
+
+      const quantity = Number(logData.quantity);
+
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        showNotice("The borrow record has an invalid quantity. Please contact the administrator.", "error");
+        return;
+      }
+
+      submitting = true;
+      submitButton.disabled = true;
+      submitButton.textContent = "⏳ Processing Return...";
+
+      let uploadedProofPath = null;
+
+      try {
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        uploadedProofPath =
+          `return_proofs/${currentUser.uid}/${logId}_${Date.now()}_${safeFileName}`;
+
+        const proofRef = ref(storage, uploadedProofPath);
+
+        await uploadBytes(proofRef, file, {
+          contentType: file.type
+        });
+
+        const proofUrl = await getDownloadURL(proofRef);
+        const logRef = doc(db, "borrow_logs", logId);
+        const itemId = String(logData.item_id || logData.itemId);
+        const itemRef = doc(db, "items", itemId);
+
+        const maintenanceStatus =
+          ["damaged", "missing_parts", "broken"].includes(returnStatus)
+            ? "needs_repair"
+            : "normal";
+
+        // Atomically update the borrow record and inventory stock.
+        await runTransaction(db, async (transaction) => {
+          const freshLogSnap = await transaction.get(logRef);
+          const freshItemSnap = await transaction.get(itemRef);
+
+          if (!freshLogSnap.exists()) {
+            throw new Error("Borrow record no longer exists.");
+          }
+
+          if (!freshItemSnap.exists()) {
+            throw new Error("Inventory item no longer exists.");
+          }
+
+          const freshLog = freshLogSnap.data();
+          const ownerId = freshLog.user_id || freshLog.userId || freshLog.uid;
+
+          if (ownerId !== currentUser.uid) {
+            throw new Error("You are not authorized to return this record.");
+          }
+
+          if (String(freshLog.status || "").toLowerCase() !== "borrowed") {
+            throw new Error("This item has already been returned or its status has changed.");
+          }
+
+          const freshQuantity = Number(freshLog.quantity);
+
+          if (!Number.isFinite(freshQuantity) || freshQuantity <= 0) {
+            throw new Error("Invalid borrow quantity.");
+          }
+
+          const freshItem = freshItemSnap.data();
+          const currentStock = Number(freshItem.quantity);
+
+          if (!Number.isFinite(currentStock) || currentStock < 0) {
+            throw new Error("Inventory stock is invalid. Contact the administrator.");
+          }
+
+          transaction.update(logRef, {
+            status: "returned",
+            date_returned: serverTimestamp(),
+            return_status: returnStatus,
+            return_condition: returnCondition,
+            return_proof: proofUrl,
+            return_proof_path: uploadedProofPath,
+            maintenance_status: maintenanceStatus
+          });
+
+          transaction.update(itemRef, {
+            quantity: currentStock + freshQuantity
+          });
+        });
+
+        showNotice("Item returned successfully! Inventory stock has been updated.", "success");
+        returnForm.reset();
+        submitButton.textContent = "✓ Return Completed";
+
+        setTimeout(() => {
+          window.location.href = "faculty_borrow_logs.html";
+        }, 1500);
+
+      } catch (error) {
+        console.error("Return process failed:", error);
+
+        showNotice(
+          error.message || "The return failed. Please check Firebase permissions and try again.",
+          "error"
+        );
+
+        submitting = false;
+        submitButton.disabled = false;
+        submitButton.textContent = "🚀 Confirm Return";
+      }
+    });
+  </script>
+</body>
+</html>
